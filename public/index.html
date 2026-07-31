@@ -22,25 +22,25 @@
         h1 {
             text-transform: uppercase;
             text-shadow: 0 0 10px #00e676;
-            font-size: 20px;
+            font-size: 18px;
             margin-bottom: 10px;
         }
 
         .nav-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
+            margin-bottom: 15px;
         }
 
         .tab-btn {
             background: #212121;
             color: #fff;
             border: 1px solid #333;
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 12px;
+            font-size: 11px;
         }
 
         .tab-btn.active {
@@ -126,8 +126,8 @@
             background: #00e676;
             color: #121212;
             border: none;
-            padding: 15px 30px;
-            font-size: 16px;
+            padding: 12px 24px;
+            font-size: 15px;
             font-weight: bold;
             text-transform: uppercase;
             border-radius: 50px;
@@ -142,38 +142,68 @@
 
         #result-message {
             margin-top: 15px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             text-align: center;
             min-height: 2.5em;
         }
 
-        .inventory-list {
-            width: 300px;
-            max-height: 300px;
+        .inventory-list, .admin-list {
+            width: 310px;
+            max-height: 280px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .inventory-card {
+        .inventory-card, .admin-card {
             background: #212121;
             border: 1px solid #333;
-            padding: 12px;
-            border-radius: 10px;
+            padding: 10px;
+            border-radius: 8px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            font-size: 13px;
         }
 
-        .inventory-card .info {
-            font-size: 14px;
-        }
-
-        .inventory-card .promo {
-            color: #ff1744;
+        .admin-card input {
+            width: 45px;
+            background: #121212;
+            color: #00e676;
+            border: 1px solid #00e676;
+            text-align: center;
+            padding: 4px;
+            border-radius: 4px;
             font-weight: bold;
+        }
+
+        .admin-card button {
+            background: #ff1744;
+            color: #fff;
+            border: none;
+            padding: 5px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11px;
+        }
+
+        .add-prize-form {
+            width: 310px;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .add-prize-form input {
+            background: #212121;
+            border: 1px solid #333;
+            color: #fff;
+            padding: 6px;
+            border-radius: 5px;
+            font-size: 12px;
         }
     </style>
 </head>
@@ -181,7 +211,7 @@
 
     <h1>Кибер Кейс клуба</h1>
 
-    <div class="nav-tabs">
+    <div class="nav-tabs" id="nav-tabs">
         <button class="tab-btn active" id="tab-case" onclick="switchTab('case')">Кейс</button>
         <button class="tab-btn" id="tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
     </div>
@@ -202,7 +232,24 @@
     <!-- Вкладка Инвентаря -->
     <div id="section-inventory" class="view-section">
         <div class="inventory-list" id="inventory-list">
-            <div style="text-align: center; color: #777;">Загрузка инвентаря...</div>
+            <div style="text-align: center; color: #777;">Загрузка...</div>
+        </div>
+    </div>
+
+    <!-- Вкладка Админки (скрыта по умолчанию) -->
+    <div id="section-admin" class="view-section">
+        <div style="font-size: 12px; margin-bottom: 5px; color: #aaa;">Управление шансами (вес приза):</div>
+        <div class="admin-list" id="admin-prizes-list">
+            <div style="text-align: center; color: #777;">Загрузка призов...</div>
+        </div>
+        
+        <div class="add-prize-form">
+            <input type="text" id="new-name" placeholder="Название (например: 5 часов)">
+            <input type="text" id="new-icon" placeholder="Иконка (например: 🎮)">
+            <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
+            <input type="number" id="new-weight" placeholder="Шанс (вес, например: 10)">
+            <input type="text" id="new-promo" placeholder="Префикс промокода (например: PROMO5)">
+            <button class="main-btn" style="font-size: 12px; padding: 8px;" onclick="addPrize()">Добавить приз</button>
         </div>
     </div>
 
@@ -211,6 +258,7 @@
         tg.expand();
 
         const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
+        const username = tg.initDataUnsafe?.user?.username || 'ropogku'; // Для теста подставим твой ник
 
         const allPrizesList = [
             { name: '30 мин', icon: '⏳', rarity: 'common' },
@@ -222,6 +270,26 @@
 
         let isSpinning = false;
 
+        // Проверяем права администратора при запуске
+        async function checkAdminAccess() {
+            try {
+                const res = await fetch(`/api/admin/check?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (data.isAdmin) {
+                    const tabsNav = document.getElementById('nav-tabs');
+                    const adminTabBtn = document.createElement('button');
+                    adminTabBtn.className = 'tab-btn';
+                    adminTabBtn.id = 'tab-admin';
+                    adminTabBtn.innerText = '⚙️ Админка';
+                    adminTabBtn.onclick = () => switchTab('admin');
+                    tabsNav.appendChild(adminTabBtn);
+                }
+            } catch (e) {
+                console.error('Ошибка проверки админа', e);
+            }
+        }
+        checkAdminAccess();
+
         function switchTab(tab) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
@@ -229,42 +297,101 @@
             if (tab === 'case') {
                 document.getElementById('tab-case').classList.add('active');
                 document.getElementById('section-case').classList.add('active');
-            } else {
+            } else if (tab === 'inventory') {
                 document.getElementById('tab-inventory').classList.add('active');
                 document.getElementById('section-inventory').classList.add('active');
                 loadInventory();
+            } else if (tab === 'admin') {
+                document.getElementById('tab-admin').classList.add('active');
+                document.getElementById('section-admin').classList.add('active');
+                loadAdminPrizes();
             }
         }
 
         async function loadInventory() {
             const listEl = document.getElementById('inventory-list');
             listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-
             try {
                 const res = await fetch(`/api/inventory?userId=${userId}`);
                 const data = await res.json();
-
                 if (!data.items || data.items.length === 0) {
                     listEl.innerHTML = '<div style="text-align: center; color: #777;">У вас пока нет призов</div>';
                     return;
                 }
-
                 listEl.innerHTML = '';
                 data.items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     card.innerHTML = `
-                        <div class="info">
-                            <div><b>${item.icon} ${item.prize_name}</b></div>
-                            <div style="font-size: 11px; color: #888;">${new Date(item.won_at).toLocaleString()}</div>
+                        <div><b>${item.icon} ${item.prize_name}</b><br><span style="font-size:10px; color:#888;">${new Date(item.won_at).toLocaleString()}</span></div>
+                        <div style="color: #ff1744; font-weight: bold;">${item.promo}</div>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка</div>';
+            }
+        }
+
+        async function loadAdminPrizes() {
+            const listEl = document.getElementById('admin-prizes-list');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/admin/prizes?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (!data.prizes) return;
+
+                listEl.innerHTML = '';
+                data.prizes.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    card.innerHTML = `
+                        <div>${p.icon} <b>${p.name}</b></div>
+                        <div style="display: flex; gap: 5px; align-items: center;">
+                            <input type="number" id="weight-${p.id}" value="${p.weight}" onchange="updateWeight(${p.id})">
+                            <button onclick="deletePrize(${p.id})">X</button>
                         </div>
-                        <div class="promo">${item.promo}</div>
                     `;
                     listEl.appendChild(card);
                 });
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
             }
+        }
+
+        async function updateWeight(prizeId) {
+            const newWeight = document.getElementById(`weight-${prizeId}`).value;
+            await fetch('/api/admin/update-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, prizeId, weight: Number(newWeight) })
+            });
+        }
+
+        async function addPrize() {
+            const name = document.getElementById('new-name').value;
+            const icon = document.getElementById('new-icon').value;
+            const rarity = document.getElementById('new-rarity').value;
+            const weight = Number(document.getElementById('new-weight').value);
+            const promo_prefix = document.getElementById('new-promo').value;
+
+            if (!name || !weight) return alert('Заполните название и шанс!');
+
+            await fetch('/api/admin/add-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, name, icon, rarity, weight, promo_prefix })
+            });
+            loadAdminPrizes();
+        }
+
+        async function deletePrize(prizeId) {
+            await fetch('/api/admin/delete-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, prizeId })
+            });
+            loadAdminPrizes();
         }
 
         async function startCase() {
@@ -289,7 +416,7 @@
                 const response = await fetch('/api/spin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: userId, clubId: 'default_club' })
+                    body: JSON.stringify({ userId, username, clubId: 'default_club' })
                 });
                 serverData = await response.json();
 
@@ -300,7 +427,7 @@
                     windowEl.style.display = 'none';
                     visual.style.display = 'flex';
                     msg.style.color = '#ff1744';
-                    msg.innerText = serverData.error || 'Произошла ошибка';
+                    msg.innerText = serverData.error || 'Ошибка';
                     return;
                 }
             } catch (e) {
@@ -310,7 +437,7 @@
                 windowEl.style.display = 'none';
                 visual.style.display = 'flex';
                 msg.style.color = '#ff1744';
-                msg.innerText = 'Ошибка соединения с сервером';
+                msg.innerText = 'Ошибка соединения';
                 return;
             }
 
@@ -339,7 +466,7 @@
 
             setTimeout(() => {
                 isSpinning = false;
-                btn.innerText = 'Открыто';
+                btn.innerText = 'Ещё раз (без лимита)';
                 msg.style.color = '#00e676';
                 msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span>`;
             }, 4100);
