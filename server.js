@@ -1,6 +1,10 @@
-const express = require('express');
-const path = require('path');
-const { createClient } = require('@libsql/client');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { createClient } from '@libsql/client';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
@@ -53,7 +57,6 @@ async function initDb() {
     )
   `);
 
-  // Добавим дефолтного суперадмина, если таблица пуста
   const adminCheck = await db.execute(`SELECT COUNT(*) as count FROM admins`);
   if (adminCheck.rows[0].count === 0) {
     await db.execute({
@@ -70,7 +73,6 @@ app.get('/api/status', async (req, res) => {
     const { userId, username } = req.query;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-    // Проверяем пользователя в БД
     let userRes = await db.execute({
       sql: `SELECT * FROM users WHERE id = ?`,
       args: [String(userId)]
@@ -79,14 +81,12 @@ app.get('/api/status', async (req, res) => {
     let user = userRes.rows[0];
 
     if (!user) {
-      // Создаем пользователя, если его нет
       await db.execute({
         sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, NULL, 0)`,
         args: [String(userId), username || '']
       });
       user = { id: String(userId), username: username || '', last_spin: null, is_banned: 0 };
     } else if (username && user.username !== username) {
-      // Обновляем юзернейм при изменении
       await db.execute({
         sql: `UPDATE users SET username = ? WHERE id = ?`,
         args: [username, String(userId)]
@@ -168,7 +168,6 @@ app.post('/api/spin', async (req, res) => {
       return res.status(400).json({ error: 'Призы не настроены администратором' });
     }
 
-    // Выбираем приз по весу (шансу)
     let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
     let randomWeight = Math.random() * totalWeight;
     let chosenPrize = prizes[0];
@@ -184,13 +183,11 @@ app.post('/api/spin', async (req, res) => {
     const promoCode = `${chosenPrize.promo_prefix || 'CYBER'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const nowIso = new Date().toISOString();
 
-    // Обновляем время последнего открытия
     await db.execute({
       sql: `UPDATE users SET last_spin = ? WHERE id = ?`,
       args: [nowIso, String(userId)]
     });
 
-    // Сохраняем приз в инвентарь
     await db.execute({
       sql: `INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)`,
       args: [String(userId), chosenPrize.name, chosenPrize.icon || '🎁', promoCode, nowIso]
