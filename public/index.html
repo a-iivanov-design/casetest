@@ -270,6 +270,7 @@
             <button class="tab-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')">Призы</button>
             <button class="tab-btn" id="subtab-stats" onclick="switchAdminSub('stats')">Статистика</button>
             <button class="tab-btn" id="subtab-ban" onclick="switchAdminSub('ban')">Баны</button>
+            <button class="tab-btn" id="subtab-admins" onclick="switchAdminSub('admins')">Админы</button>
         </div>
 
         <!-- Подвкладка: Управление призами -->
@@ -299,21 +300,33 @@
         <!-- Подвкладка: Баны пользователей -->
         <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div style="font-size: 11px; margin-bottom: 5px; color: #ff1744;">Управление блокировками:</div>
-            <div class="add-prize-form">
+            <div class="add-prize-form" style="margin-bottom: 15px;">
                 <input type="text" id="ban-username" placeholder="Юзернейм ТГ (например: @bad_user)">
                 <div style="display: flex; gap: 6px;">
                     <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff; flex: 1;" onclick="setBanStatus(1)">Забанить</button>
                     <button class="main-btn" style="font-size: 11px; padding: 8px; background: #00e676; color: #121212; flex: 1;" onclick="setBanStatus(0)">Разбанить</button>
                 </div>
             </div>
+
+            <div style="font-size: 11px; margin-bottom: 5px; color: #ff1744;">Список забаненных:</div>
+            <div class="admin-list" id="banned-users-list">
+                <div style="text-align: center; color: #777;">Загрузка...</div>
+            </div>
         </div>
 
-        <!-- Секция добавления главных админов (только для супер-админа) -->
-        <div id="super-admin-section" style="display:none; width: 310px; margin-top: 15px; border-top: 1px solid #333; padding-top: 12px; margin-bottom: 20px;">
-            <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744; font-weight: bold;">Назначить админа:</div>
-            <div class="add-prize-form">
-                <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
-                <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
+        <!-- Подвкладка: Список админов и назначение (Супер-админ) -->
+        <div id="admin-sub-admins" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
+            <div id="super-admin-section" style="display:none; width: 310px; margin-bottom: 15px;">
+                <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744; font-weight: bold;">Назначить админа:</div>
+                <div class="add-prize-form">
+                    <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
+                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
+                </div>
+            </div>
+
+            <div style="font-size: 11px; margin-bottom: 5px; color: #00e676;">Список администраторов:</div>
+            <div class="admin-list" id="admins-list-container">
+                <div style="text-align: center; color: #777;">Загрузка...</div>
             </div>
         </div>
     </div>
@@ -407,14 +420,20 @@
         }
 
         function switchAdminSub(sub) {
-            ['prizes', 'stats', 'ban'].forEach(s => {
-                document.getElementById(`subtab-${s}`).classList.remove('active');
-                document.getElementById(`admin-sub-${s}`).style.display = 'none';
+            ['prizes', 'stats', 'ban', 'admins'].forEach(s => {
+                const btnEl = document.getElementById(`subtab-${s}`);
+                const secEl = document.getElementById(`admin-sub-${s}`);
+                if (btnEl) btnEl.classList.remove('active');
+                if (secEl) secEl.style.display = 'none';
             });
-            document.getElementById(`subtab-${sub}`).classList.add('active');
-            document.getElementById(`admin-sub-${sub}`).style.display = 'flex';
+            const activeBtn = document.getElementById(`subtab-${sub}`);
+            const activeSec = document.getElementById(`admin-sub-${sub}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            if (activeSec) activeSec.style.display = 'flex';
 
             if (sub === 'stats') loadStats();
+            if (sub === 'ban') loadBannedUsers();
+            if (sub === 'admins') loadAdminsList();
         }
 
         async function loadInventory() {
@@ -434,11 +453,6 @@
                     
                     let promoBlock = `<div style="color: #ff1744; font-weight: bold;">${item.promo}</div>`;
                     let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
-
-                    if (item.isExpired) {
-                        promoBlock = `<div style="color: #616161; font-weight: bold; text-decoration: line-through;">Срок истек</div>`;
-                        statusText = `<span style="font-size:10px; color:#ff1744;">Просрочено (> 2 дней)</span>`;
-                    }
 
                     card.innerHTML = `
                         <div><b>${item.icon} ${item.prize_name}</b><br>${statusText}</div>
@@ -494,6 +508,63 @@
             }
         }
 
+        async function loadBannedUsers() {
+            const listEl = document.getElementById('banned-users-list');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/admin/banned-list?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (!data.bannedUsers || data.bannedUsers.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Нет заблокированных пользователей</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.bannedUsers.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    card.innerHTML = `
+                        <div>🚫 <b>@${u.username}</b></div>
+                        <button style="background: #00e676; color: #121212;" onclick="quickUnban('${u.username}')">Разбанить</button>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadAdminsList() {
+            const listEl = document.getElementById('admins-list-container');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/admin/list?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (!data.admins || data.admins.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Список пуст</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.admins.forEach(adm => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    let roleBadge = adm.is_super ? '<span style="color:#ff1744; font-size:10px;">[Супер-админ]</span>' : '<span style="color:#00e676; font-size:10px;">[Админ]</span>';
+                    
+                    let removeBtn = '';
+                    if (isSuperAdmin && adm.username.toLowerCase() !== 'ropogku') {
+                        removeBtn = `<button onclick="removeAdmin('${adm.username}')">Снять</button>`;
+                    }
+
+                    card.innerHTML = `
+                        <div><b>@${adm.username}</b> ${roleBadge}</div>
+                        ${removeBtn}
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+            }
+        }
+
         async function setBanStatus(banState) {
             const targetUsername = document.getElementById('ban-username').value;
             if (!targetUsername) return alert('Введите юзернейм!');
@@ -507,9 +578,19 @@
             if (data.success) {
                 alert(banState === 1 ? 'Пользователь заблокирован!' : 'Пользователь разблокирован!');
                 document.getElementById('ban-username').value = '';
+                loadBannedUsers();
             } else {
                 alert(data.error || 'Ошибка');
             }
+        }
+
+        async function quickUnban(targetUsername) {
+            await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
+            });
+            loadBannedUsers();
         }
 
         async function updateWeight(prizeId) {
@@ -567,20 +648,34 @@
 
         async function addNewAdmin() {
             const newAdminUsername = document.getElementById('new-admin-username').value;
-            const clubId = document.getElementById('new-club-id').value;
-
-            if (!newAdminUsername || !clubId) return alert('Введите юзернейм нового админа');
+            if (!newAdminUsername) return alert('Введите юзернейм нового админа');
 
             const res = await fetch('/api/admin/add-admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, newAdminUsername, clubId })
+                body: JSON.stringify({ userId, username, newAdminUsername })
             });
             const data = await res.json();
             if (data.success) {
                 alert('Администратор успешно назначен!');
                 document.getElementById('new-admin-username').value = '';
-                document.getElementById('new-club-id').value = '';
+                loadAdminsList();
+            } else {
+                alert(data.error || 'Ошибка');
+            }
+        }
+
+        async function removeAdmin(targetAdminUsername) {
+            if (!confirm(`Точно снять администратора @${targetAdminUsername}?`)) return;
+
+            const res = await fetch('/api/admin/remove-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetAdminUsername })
+            });
+            const data = await res.json();
+            if (data.success) {
+                loadAdminsList();
             } else {
                 alert(data.error || 'Ошибка');
             }
@@ -608,7 +703,7 @@
                 const response = await fetch('/api/spin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, username, clubId: 'default_club' })
+                    body: JSON.stringify({ userId, username })
                 });
                 serverData = await response.json();
 
