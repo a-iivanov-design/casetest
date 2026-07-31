@@ -90,6 +90,13 @@
             font-size: 50px;
             box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
             flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .case-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
         }
 
         .roller-window {
@@ -290,7 +297,7 @@
             
             <div class="add-prize-form" style="margin-bottom: 15px;">
                 <input type="text" id="new-name" placeholder="Название приза">
-                <input type="text" id="new-icon" placeholder="Иконка (эмодзи)">
+                <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)">
                 <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
                 <input type="number" id="new-weight" placeholder="Шанс (вес)">
                 <input type="text" id="new-promo" placeholder="Префикс промокода">
@@ -305,7 +312,7 @@
             </div>
         </div>
 
-        <!-- Подвкладка: Баны пользователей -->
+        <!-- Подвкладка: Баны и Сброс таймера -->
         <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Управление блокировками:</div>
             <div class="add-prize-form" style="margin-bottom: 15px;">
@@ -314,6 +321,7 @@
                     <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--secondary); color: #fff; flex: 1;" onclick="setBanStatus(1)">Забанить</button>
                     <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--primary); color: var(--bg); flex: 1;" onclick="setBanStatus(0)">Разбанить</button>
                 </div>
+                <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff9800; color: #fff; margin-top: 5px;" onclick="resetTimer()">Сбросить таймер (дать открыть кейс)</button>
             </div>
 
             <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Список забаненных:</div>
@@ -344,7 +352,15 @@
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
-            document.getElementById('case-visual').innerText = cfg.logoEmoji || "🎁";
+            
+            const caseVis = document.getElementById('case-visual');
+            if (cfg.logoImage) {
+                if (cfg.logoImage.startsWith('http')) {
+                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo">`;
+                } else {
+                    caseVis.innerText = cfg.logoImage;
+                }
+            }
             
             const root = document.documentElement;
             if (cfg.primaryColor) root.style.setProperty('--primary', cfg.primaryColor);
@@ -480,11 +496,12 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     
+                    let iconDisplay = item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : item.icon;
                     let promoBlock = `<div style="color: var(--secondary); font-weight: bold;">${item.promo}</div>`;
                     let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
 
                     card.innerHTML = `
-                        <div><b>${item.icon} ${item.prize_name}</b><br>${statusText}</div>
+                        <div><b>${iconDisplay} ${item.prize_name}</b><br>${statusText}</div>
                         ${promoBlock}
                     `;
                     listEl.appendChild(card);
@@ -507,8 +524,9 @@
                 data.prizes.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
+                    let iconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : p.icon;
                     card.innerHTML = `
-                        <div>${p.icon} <b>${p.name}</b></div>
+                        <div>${iconDisplay} <b>${p.name}</b></div>
                         <div style="display: flex; gap: 5px; align-items: center;">
                             <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
                             <button onclick="deletePrize(${p.id})">X</button>
@@ -608,6 +626,24 @@
                 alert(banState === 1 ? 'Пользователь заблокирован!' : 'Пользователь разблокирован!');
                 document.getElementById('ban-username').value = '';
                 loadBannedUsers();
+            } else {
+                alert(data.error || 'Ошибка');
+            }
+        }
+
+        async function resetTimer() {
+            const targetUsername = document.getElementById('ban-username').value;
+            if (!targetUsername) return alert('Введите юзернейм!');
+
+            const res = await fetch('/api/admin/reset-timer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Таймер сброшен! Пользователь может снова открыть кейс.');
+                document.getElementById('ban-username').value = '';
             } else {
                 alert(data.error || 'Ошибка');
             }
@@ -748,12 +784,12 @@
                 }
             } catch (e) {
                 isSpinning = false;
-                btn.disabled = false;
-                btn.innerText = 'Открыть кейс';
-                windowEl.style.display = 'none';
-                visual.style.display = 'flex';
-                msg.style.color = 'var(--secondary)';
-                msg.innerText = 'Ошибка соединения';
+                    btn.disabled = false;
+                    btn.innerText = 'Открыть кейс';
+                    windowEl.style.display = 'none';
+                    visual.style.display = 'flex';
+                    msg.style.color = 'var(--secondary)';
+                    msg.innerText = 'Ошибка соединения';
                 return;
             }
 
@@ -778,7 +814,9 @@
                 
                 const div = document.createElement('div');
                 div.className = `prize-item prize-${p.rarity || 'common'}`;
-                div.innerHTML = `<div>${p.icon}</div><div>${p.name}</div>`;
+                
+                let pIconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:30px;height:30px;object-fit:contain;">` : p.icon;
+                div.innerHTML = `<div>${pIconDisplay}</div><div>${p.name}</div>`;
                 content.appendChild(div);
             }
 
@@ -797,7 +835,10 @@
                 btn.disabled = true;
                 btn.innerText = 'Кейс уже открыт';
                 msg.style.color = 'var(--primary)';
-                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
+                
+                let winIconDisplay = winningPrize.icon && winningPrize.icon.startsWith('http') ? `<img src="${winningPrize.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : winningPrize.icon;
+                
+                msg.innerHTML = `🎉 Вы выиграли: <b>${winIconDisplay} ${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
             }, 4100);
         }
     </script>
