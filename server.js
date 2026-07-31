@@ -5,7 +5,6 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Твой ник в качестве маркера главного администратора
 const SUPER_ADMIN_USERNAME = 'ropogku';
 
 app.use(express.json());
@@ -65,9 +64,9 @@ function initDatabase() {
                     { name: 'Ночной пакет', icon: '🌙', rarity: 'epic', weight: 1, promo: 'NIGHT' }
                 ];
 
-                const stmt = db.prepare(`INSERT INTO prizes (name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?)`);
+                const stmt = db.prepare(`INSERT INTO prizes (club_id, name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?, ?)`);
                 defaultPrizes.forEach(p => {
-                    stmt.run(p.name, p.icon, p.rarity, p.weight, p.promo);
+                    stmt.run('default_club', p.name, p.icon, p.rarity, p.weight, p.promo);
                 });
                 stmt.finalize();
             }
@@ -75,16 +74,15 @@ function initDatabase() {
     });
 }
 
-// Проверка прав администратора
 function checkAdmin(userId, username, callback) {
     if (username === SUPER_ADMIN_USERNAME || userId === SUPER_ADMIN_USERNAME) {
-        return callback(true, 'default_club');
+        return callback(true, 'default_club', true); // true в конце означает, что это супер-админ
     }
     db.get(`SELECT club_id FROM admins WHERE telegram_id = ?`, [userId], (err, row) => {
         if (row) {
-            callback(true, row.club_id);
+            callback(true, row.club_id, false);
         } else {
-            callback(false, null);
+            callback(false, null, false);
         }
     });
 }
@@ -145,7 +143,7 @@ app.post('/api/spin', (req, res) => {
     }
 });
 
-// Получение инвентаря
+// Инвентарь
 app.get('/api/inventory', (req, res) => {
     const userId = String(req.query.userId || 'test_user');
     db.all(`SELECT prize_name, icon, rarity, promo, won_at FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
@@ -158,12 +156,12 @@ app.get('/api/inventory', (req, res) => {
 app.get('/api/admin/check', (req, res) => {
     const userId = String(req.query.userId || '');
     const username = String(req.query.username || '');
-    checkAdmin(userId, username, (isAdmin, clubId) => {
-        res.json({ isAdmin, clubId });
+    checkAdmin(userId, username, (isAdmin, clubId, isSuper) => {
+        res.json({ isAdmin, clubId, isSuper });
     });
 });
 
-// Получение списка призов для админки
+// Список призов
 app.get('/api/admin/prizes', (req, res) => {
     const userId = String(req.query.userId || '');
     const username = String(req.query.username || '');
@@ -212,6 +210,23 @@ app.post('/api/admin/delete-prize', (req, res) => {
             if (err) return res.status(500).json({ error: 'Ошибка удаления' });
             res.json({ success: true });
         });
+    });
+});
+
+// Добавление нового администратора (доступно только супер-админу)
+app.post('/api/admin/add-admin', (req, res) => {
+    const { userId, username, newAdminId, clubId } = req.body;
+    checkAdmin(String(userId), String(username), (isAdmin, _, isSuper) => {
+        if (!isSuper) return res.status(403).json({ error: 'Только главный администратор может добавлять других админов' });
+        
+        db.run(
+            `INSERT OR REPLACE INTO admins (telegram_id, club_id, role) VALUES (?, ?, 'admin')`,
+            [String(newAdminId), clubId || 'default_club'],
+            (err) => {
+                if (err) return res.status(500).json({ error: 'Ошибка добавления админа' });
+                res.json({ success: true });
+            }
+        );
     });
 });
 
