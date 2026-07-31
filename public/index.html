@@ -357,6 +357,15 @@
     </div>
 
     <script>
+        // Безопасная функция отображения иконки (если картинка не грузится — автоматически заменяется на эмодзи)
+        function getIconHtml(icon, size = '20px') {
+            if (!icon) return '🎁';
+            if (icon.startsWith('http') || icon.startsWith('/')) {
+                return `<img src="${icon}" style="width:${size};height:${size};vertical-align:middle;object-fit:contain;" onerror="this.outerHTML='🎁'">`;
+            }
+            return icon;
+        }
+
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
@@ -364,7 +373,7 @@
             const caseVis = document.getElementById('case-visual');
             if (cfg.logoImage) {
                 if (cfg.logoImage.startsWith('http')) {
-                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo">`;
+                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo" onerror="this.outerHTML='🎁'">`;
                 } else {
                     caseVis.innerText = cfg.logoImage;
                 }
@@ -505,7 +514,7 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     
-                    let iconDisplay = item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : item.icon;
+                    let iconDisplay = getIconHtml(item.icon, '20px');
                     let promoBlock = `<div style="color: var(--secondary); font-weight: bold;">${item.promo}</div>`;
                     let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
 
@@ -533,7 +542,7 @@
                 data.prizes.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    let iconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : p.icon;
+                    let iconDisplay = getIconHtml(p.icon, '20px');
                     card.innerHTML = `
                         <div>${iconDisplay} <b>${p.name}</b></div>
                         <div style="display: flex; gap: 5px; align-items: center;">
@@ -850,7 +859,7 @@
                 const div = document.createElement('div');
                 div.className = `prize-item prize-${p.rarity || 'common'}`;
                 
-                let pIconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:30px;height:30px;object-fit:contain;">` : p.icon;
+                let pIconDisplay = getIconHtml(p.icon, '30px');
                 div.innerHTML = `<div>${pIconDisplay}</div><div>${p.name}</div>`;
                 content.appendChild(div);
             }
@@ -871,7 +880,7 @@
                 btn.innerText = 'Кейс уже открыт';
                 msg.style.color = 'var(--primary)';
                 
-                let winIconDisplay = winningPrize.icon && winningPrize.icon.startsWith('http') ? `<img src="${winningPrize.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : winningPrize.icon;
+                let winIconDisplay = getIconHtml(winningPrize.icon, '20px');
                 
                 msg.innerHTML = `🎉 Вы выиграли: <b>${winIconDisplay} ${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
             }, 4100);
