@@ -217,9 +217,9 @@
             background: #212121;
             border: 1px solid #333;
             color: #fff;
-            padding: 6px;
+            padding: 8px;
             border-radius: 5px;
-            font-size: 12px;
+            font-size: 13px;
         }
 
         .stats-box {
@@ -285,7 +285,7 @@
                 <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
                 <input type="number" id="new-weight" placeholder="Шанс (вес)">
                 <input type="text" id="new-promo" placeholder="Префикс промокода">
-                <button class="main-btn" style="font-size: 11px; padding: 6px;" onclick="addPrize()">Добавить приз</button>
+                <button class="main-btn" style="font-size: 11px; padding: 8px;" onclick="addPrize()">Добавить приз</button>
             </div>
         </div>
 
@@ -314,7 +314,7 @@
             <div class="add-prize-form">
                 <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
                 <input type="text" id="new-club-id" placeholder="ID клуба">
-                <button class="main-btn" style="font-size: 11px; padding: 7px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
+                <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
             </div>
         </div>
     </div>
@@ -326,14 +326,7 @@
         const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
         const username = tg.initDataUnsafe?.user?.username || '';
 
-        const allPrizesList = [
-            { name: '30 мин', icon: '⏳', rarity: 'common' },
-            { name: '1 час', icon: '⏰', rarity: 'uncommon' },
-            { name: 'Энергетик', icon: '⚡', rarity: 'uncommon' },
-            { name: '3 часа', icon: '🎮', rarity: 'rare' },
-            { name: 'Ночной пакет', icon: '🌙', rarity: 'epic' }
-        ];
-
+        let cachedServerPrizes = [];
         let isSpinning = false;
         let isSuperAdmin = false;
 
@@ -374,12 +367,14 @@
                 if (data.isAdmin) {
                     isSuperAdmin = data.isSuper;
                     const tabsNav = document.getElementById('nav-tabs');
-                    const adminTabBtn = document.createElement('button');
-                    adminTabBtn.className = 'tab-btn';
-                    adminTabBtn.id = 'tab-admin';
-                    adminTabBtn.innerText = '⚙️ Админка';
-                    adminTabBtn.onclick = () => switchTab('admin');
-                    tabsNav.appendChild(adminTabBtn);
+                    if (!document.getElementById('tab-admin')) {
+                        const adminTabBtn = document.createElement('button');
+                        adminTabBtn.className = 'tab-btn';
+                        adminTabBtn.id = 'tab-admin';
+                        adminTabBtn.innerText = '⚙️ Админка';
+                        adminTabBtn.onclick = () => switchTab('admin');
+                        tabsNav.appendChild(adminTabBtn);
+                    }
 
                     if (isSuperAdmin) {
                         document.getElementById('super-admin-section').style.display = 'block';
@@ -465,6 +460,7 @@
                 const data = await res.json();
                 if (!data.prizes) return;
 
+                cachedServerPrizes = data.prizes;
                 listEl.innerHTML = '';
                 data.prizes.forEach(p => {
                     const card = document.createElement('div');
@@ -472,7 +468,7 @@
                     card.innerHTML = `
                         <div>${p.icon} <b>${p.name}</b></div>
                         <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="number" id="weight-${p.id}" value="${p.weight}" onchange="updateWeight(${p.id})">
+                            <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
                             <button onclick="deletePrize(${p.id})">X</button>
                         </div>
                     `;
@@ -518,29 +514,47 @@
         }
 
         async function updateWeight(prizeId) {
-            const newWeight = document.getElementById(`weight-${prizeId}`).value;
+            const inputEl = document.getElementById(`weight-${prizeId}`);
+            if (!inputEl) return;
+            const newWeight = Number(inputEl.value);
             await fetch('/api/admin/update-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, prizeId, weight: Number(newWeight) })
+                body: JSON.stringify({ userId, username, prizeId, weight: newWeight })
             });
         }
 
         async function addPrize() {
-            const name = document.getElementById('new-name').value;
-            const icon = document.getElementById('new-icon').value;
-            const rarity = document.getElementById('new-rarity').value;
-            const weight = Number(document.getElementById('new-weight').value);
-            const promo_prefix = document.getElementById('new-promo').value;
+            const nameInput = document.getElementById('new-name');
+            const iconInput = document.getElementById('new-icon');
+            const rarityInput = document.getElementById('new-rarity');
+            const weightInput = document.getElementById('new-weight');
+            const promoInput = document.getElementById('new-promo');
+
+            const name = nameInput.value;
+            const icon = iconInput.value;
+            const rarity = rarityInput.value;
+            const weight = Number(weightInput.value);
+            const promo_prefix = promoInput.value;
 
             if (!name || !weight) return alert('Заполните название и шанс!');
 
-            await fetch('/api/admin/add-prize', {
+            const res = await fetch('/api/admin/add-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, username, name, icon, rarity, weight, promo_prefix })
             });
-            loadAdminPrizes();
+            const data = await res.json();
+            if (res.ok) {
+                nameInput.value = '';
+                iconInput.value = '';
+                rarityInput.value = '';
+                weightInput.value = '';
+                promoInput.value = '';
+                loadAdminPrizes();
+            } else {
+                alert(data.error || 'Ошибка добавления');
+            }
         }
 
         async function deletePrize(prizeId) {
@@ -610,7 +624,7 @@
                     return;
                 }
             } catch (e) {
-                isSpinning = false;
+                isSpinning, isSpinning = false;
                 btn.disabled = false;
                 btn.innerText = 'Открыть кейс';
                 windowEl.style.display = 'none';
@@ -622,13 +636,26 @@
 
             const winningPrize = serverData.prize;
 
+            // Если список призов еще не загружен в админке, подгрузим для рулетки
+            let availablePrizes = cachedServerPrizes;
+            if (!availablePrizes || availablePrizes.length === 0) {
+                try {
+                    const res = await fetch(`/api/admin/prizes?userId=${userId}&username=${username}`);
+                    const data = await res.json();
+                    if (data.prizes) availablePrizes = data.prizes;
+                } catch (err) {}
+            }
+            if (!availablePrizes || availablePrizes.length === 0) {
+                availablePrizes = [{ name: winningPrize.name, icon: winningPrize.icon, rarity: winningPrize.rarity || 'common' }];
+            }
+
             content.innerHTML = '';
             for (let i = 0; i < 40; i++) {
-                const randomTemplate = allPrizesList[Math.floor(Math.random() * allPrizesList.length)];
+                const randomTemplate = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
                 const p = (i === 30) ? winningPrize : randomTemplate;
                 
                 const div = document.createElement('div');
-                div.className = `prize-item prize-${p.rarity}`;
+                div.className = `prize-item prize-${p.rarity || 'common'}`;
                 div.innerHTML = `<div>${p.icon}</div><div>${p.name}</div>`;
                 content.appendChild(div);
             }
