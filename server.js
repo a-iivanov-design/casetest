@@ -2,9 +2,13 @@ const superAdminUsername = 'ropogku'; // Твой ник в Telegram без @
 
 const express = require('express');
 const { createClient } = require('@libsql/client');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
+
+// Раздаем статические файлы фронтенда из папки public
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Подключение к облачной базе данных Turso
 const db = createClient({
@@ -30,11 +34,6 @@ async function initDB() {
 }
 
 initDB();
-
-// Приветствие для главной страницы сайта
-app.get('/', (req, res) => {
-    res.send('Cyber Case Bot Server is running!');
-});
 
 // Эндпоинт для проверки и сохранения пользователя
 app.post('/api/check-admin', async (req, res) => {
