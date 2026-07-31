@@ -45,7 +45,8 @@ function initDatabase() {
             icon TEXT,
             rarity TEXT,
             promo TEXT,
-            won_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            won_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            is_used INTEGER DEFAULT 0
         )`);
 
         db.run(`CREATE TABLE IF NOT EXISTS admins (
@@ -55,8 +56,9 @@ function initDatabase() {
             role TEXT DEFAULT 'admin'
         )`);
 
+        // Добавляем дефолтные призы только если таблица совсем пустая
         db.get(`SELECT COUNT(*) as count FROM prizes`, (err, row) => {
-            if (row.count === 0) {
+            if (row && row.count === 0) {
                 const defaultPrizes = [
                     { name: '30 мин', icon: '⏳', rarity: 'common', weight: 50, promo: 'TIME30' },
                     { name: '1 час', icon: '⏰', rarity: 'uncommon', weight: 30, promo: 'TIME60' },
@@ -79,7 +81,7 @@ function checkAdmin(userId, username, callback) {
     const cleanUsername = username ? username.replace('@', '').toLowerCase() : '';
     
     if (cleanUsername === SUPER_ADMIN_USERNAME.toLowerCase() || userId === SUPER_ADMIN_USERNAME) {
-        return callback(true, 'default_club', true); // Супер-админ
+        return callback(true, 'default_club', true);
     }
 
     db.get(`SELECT club_id FROM admins WHERE telegram_id = ? OR LOWER(username) = ?`, [userId, cleanUsername], (err, row) => {
@@ -103,7 +105,7 @@ app.post('/api/spin', (req, res) => {
     const proceedWithSpin = () => {
         db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
             if (err || !prizes.length) {
-                return res.status(500).json({ error: 'Призы не найдены' });
+                return res.status(500).json({ error: 'Призы не найдены для этого клуба' });
             }
 
             const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
@@ -125,7 +127,7 @@ app.post('/api/spin', (req, res) => {
             }
 
             db.run(
-                `INSERT INTO inventory (user_id, prize_name, icon, rarity, promo) VALUES (?, ?, ?, ?, ?)`,
+                `INSERT INTO inventory (user_id, prize_name, icon, rarity, promo, won_at) VALUES (?, ?, ?, ?, ?, datetime('now'))`,
                 [userId, winningPrize.name, winningPrize.icon, winningPrize.rarity, uniquePromo]
             );
 
@@ -148,12 +150,25 @@ app.post('/api/spin', (req, res) => {
     }
 });
 
-// Инвентарь
+// Инвентарь с проверкой актуальности (2 дня / 48 часов)
 app.get('/api/inventory', (req, res) => {
     const userId = String(req.query.userId || 'test_user');
-    db.all(`SELECT prize_name, icon, rarity, promo, won_at FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
-        if (err) return res.status(500).json({ error: 'Ошибка' });
-        res.json({ items });
+    db.all(`SELECT id, prize_name, icon, rarity, promo, won_at, is_used FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
+        if (err) return res.status(500).json({ error: 'Ошибка получения инвентаря' });
+
+        const now = new Date();
+        const formattedItems = items.map(item => {
+            const wonDate = new Date(item.won_at + ' UTC'); // База пишет в UTC
+            const diffHours = (now - wonDate) / (1000 * 60 * 60);
+            const isExpired = diffHours > 48;
+
+            return {
+                ...item,
+                isExpired
+            };
+        });
+
+        res.json({ items: formattedItems });
     });
 });
 
@@ -218,7 +233,7 @@ app.post('/api/admin/delete-prize', (req, res) => {
     });
 });
 
-// Добавление нового администратора по юзернейму
+// Добавление нового администратора
 app.post('/api/admin/add-admin', (req, res) => {
     const { userId, username, newAdminUsername, clubId } = req.body;
     checkAdmin(String(userId), String(username), (isAdmin, _, isSuper) => {
@@ -227,7 +242,6 @@ app.post('/api/admin/add-admin', (req, res) => {
         const cleanNewUsername = newAdminUsername ? newAdminUsername.replace('@', '').trim() : '';
         if (!cleanNewUsername) return res.status(400).json({ error: 'Укажите юзернейм!' });
 
-        // В качестве временного ID используем никнейм в нижнем регистре, если точный ID неизвестен
         const dummyId = `username_${cleanNewUsername.toLowerCase()}`;
 
         db.run(
