@@ -10,14 +10,15 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к базе данных (Turso или локальный SQLite файл)
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL || 'file:local.db',
   authToken: process.env.TURSO_AUTH_TOKEN || '',
 });
 
-// Инициализация базы данных и таблиц
 async function initDb() {
+  // Принудительно обновляем таблицу пользователей со свежей схемой, содержащей id
+  await db.execute(`DROP TABLE IF EXISTS users`);
+
   await db.execute(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
@@ -67,7 +68,6 @@ async function initDb() {
 }
 initDb();
 
-// Проверка статуса пользователя
 app.get('/api/status', async (req, res) => {
   try {
     const { userId, username } = req.query;
@@ -117,7 +117,6 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-// Проверка прав администратора
 app.get('/api/admin/check', async (req, res) => {
   try {
     const { username } = req.query;
@@ -139,7 +138,6 @@ app.get('/api/admin/check', async (req, res) => {
   }
 });
 
-// Открытие кейса (Спин)
 app.post('/api/spin', async (req, res) => {
   try {
     const { userId, username } = req.body;
@@ -207,7 +205,6 @@ app.post('/api/spin', async (req, res) => {
   }
 });
 
-// Получение инвентаря
 app.get('/api/inventory', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -224,7 +221,6 @@ app.get('/api/inventory', async (req, res) => {
   }
 });
 
-// Административные маршруты
 app.get('/api/admin/prizes', async (req, res) => {
   try {
     const prizesRes = await db.execute(`SELECT * FROM prizes`);
