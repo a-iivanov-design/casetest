@@ -1,4 +1,4 @@
-const superAdminUsername = 'ropogku'; // Твой ник в Telegram без @
+const superAdminUsername = 'ТВОЙ_ТЕЛЕГРАМ_НИК'; // Твой ник в Telegram без @
 
 const express = require('express');
 const { createClient } = require('@libsql/client');
@@ -31,7 +31,7 @@ async function initDB() {
 
 initDB();
 
-// Пример эндпоинта для проверки или добавления пользователя (адаптируйте под свою логику)
+// Эндпоинт для проверки и сохранения пользователя
 app.post('/api/check-admin', async (req, res) => {
     try {
         const { telegram_id, username } = req.body;
@@ -60,7 +60,7 @@ app.post('/api/check-admin', async (req, res) => {
             // Если пользователь есть, но это супер-админ, принудительно обновляем ему роль на admin
             if (isSuperAdmin && result.rows[0].role !== 'admin') {
                 await db.execute({
-                    sql: 'UPDATE users SET role = 'admin' WHERE telegram_id = ?',
+                    sql: 'UPDATE users SET role = "admin" WHERE telegram_id = ?',
                     args: [telegram_id]
                 });
             }
