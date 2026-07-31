@@ -3,888 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CYBER CASE</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="config.js"></script>
+    <title>Cyber Case</title>
     <style>
-        :root {
-            --primary: #00e676;
-            --secondary: #ff1744;
-            --bg: #121212;
-            --card-bg: #212121;
-        }
-
         body {
-            background-color: var(--bg);
-            color: var(--primary);
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            height: 100vh;
+            background-color: #0f0f13;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            overflow: hidden;
-            padding-top: 15px;
-            box-sizing: border-box;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
-
         h1 {
-            text-transform: uppercase;
-            text-shadow: 0 0 10px var(--primary);
-            font-size: 18px;
-            margin-bottom: 10px;
-            flex-shrink: 0;
+            color: #00ffcc;
+            text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
         }
-
-        .nav-tabs {
-            display: flex;
-            gap: 6px;
-            margin-bottom: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .tab-btn {
-            background: var(--card-bg);
-            color: #fff;
-            border: 1px solid #333;
-            padding: 5px 10px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 11px;
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
-            color: var(--bg);
-            border-color: var(--primary);
-        }
-
-        .view-section {
-            display: none;
-            flex-direction: column;
-            align-items: center;
+        .container {
+            max-width: 600px;
             width: 100%;
-            flex: 1;
-            overflow-y: auto;
-            padding-bottom: 30px;
-            box-sizing: border-box;
+            text-align: center;
         }
-
-        .view-section.active {
-            display: flex;
-        }
-
-        .case-container {
-            width: 280px;
-            height: 140px;
-            background: var(--card-bg);
-            border: 2px solid var(--primary);
-            border-radius: 15px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 20px;
-            font-size: 50px;
-            box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
-            flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        .case-container img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: contain;
-        }
-
-        .roller-window {
-            width: 300px;
-            height: 100px;
-            overflow: hidden;
-            position: relative;
-            background-color: #000;
-            border-radius: 10px;
-            border: 1px solid #333;
-            margin-bottom: 20px;
+        /* Экран блокировки */
+        #banned-screen {
             display: none;
-            flex-shrink: 0;
-        }
-
-        .roller-content {
-            display: flex;
-            position: absolute;
+            position: fixed;
+            top: 0;
             left: 0;
-            top: 0;
-        }
-
-        .prize-item {
-            width: 100px;
-            height: 100px;
-            flex-shrink: 0;
-            display: flex;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 12, 0.98);
+            z-index: 9999;
             flex-direction: column;
-            align-items: center;
             justify-content: center;
-            border-right: 1px solid #333;
-            box-sizing: border-box;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        .prize-common { color: #fff; }
-        .prize-uncommon { color: #42a5f5; }
-        .prize-rare { color: #ab47bc; }
-        .prize-epic { color: #ffa726; }
-
-        .selector {
-            position: absolute;
-            top: 0;
-            left: 149px;
-            width: 2px;
-            height: 100px;
-            background-color: var(--secondary);
-            z-index: 10;
-        }
-
-        button.main-btn {
-            background: var(--primary);
-            color: var(--bg);
-            border: none;
-            padding: 12px 24px;
-            font-size: 15px;
-            font-weight: bold;
-            text-transform: uppercase;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
-            flex-shrink: 0;
-        }
-
-        button.main-btn:disabled {
-            background: #616161;
-            cursor: not-allowed;
-            box-shadow: none;
-            color: #aaa;
-        }
-
-        #result-message {
-            margin-top: 15px;
-            font-size: 14px;
-            font-weight: bold;
-            text-align: center;
-            min-height: 2.5em;
-            padding: 0 15px;
-            flex-shrink: 0;
-        }
-
-        .inventory-list, .admin-list {
-            width: 310px;
-            max-height: 200px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .inventory-card, .admin-card {
-            background: var(--card-bg);
-            border: 1px solid #333;
-            padding: 10px;
-            border-radius: 8px;
-            display: flex;
-            justify-content: space-between;
             align-items: center;
-            font-size: 13px;
-        }
-
-        .admin-card input {
-            width: 45px;
-            background: var(--bg);
-            color: var(--primary);
-            border: 1px solid var(--primary);
             text-align: center;
-            padding: 4px;
-            border-radius: 4px;
-            font-weight: bold;
+            padding: 20px;
         }
-
-        .admin-card button {
-            background: var(--secondary);
-            color: #fff;
-            border: none;
-            padding: 5px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .add-prize-form {
-            width: 310px;
-            margin-top: 5px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-
-        .add-prize-form input {
-            background: var(--card-bg);
-            border: 1px solid #333;
-            color: #fff;
-            padding: 8px;
-            border-radius: 5px;
-            font-size: 13px;
-        }
-
-        .stats-box {
-            width: 290px;
-            background: var(--card-bg);
-            border: 1px solid #333;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 13px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
+        .banned-box {
+            background: #181820;
+            border: 1px solid #ff3333;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
+            max-width: 350px;
+            width: 100%;
         }
     </style>
 </head>
 <body>
 
-    <h1 id="app-title">КИБЕР КЕЙС</h1>
-
-    <div class="nav-tabs" id="nav-tabs">
-        <button class="tab-btn active" id="tab-case" onclick="switchTab('case')">Кейс</button>
-        <button class="tab-btn" id="tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
-    </div>
-
-    <!-- Вкладка Кейса -->
-    <div id="section-case" class="view-section active">
-        <div class="case-container" id="case-visual">🎁</div>
-
-        <div class="roller-window" id="roller-window">
-            <div class="selector"></div>
-            <div class="roller-content" id="roller-content"></div>
-        </div>
-
-        <button class="main-btn" id="action-button" onclick="startCase()">Открыть кейс</button>
-        <div id="result-message">Проверка статуса...</div>
-    </div>
-
-    <!-- Вкладка Инвентаря -->
-    <div id="section-inventory" class="view-section">
-        <div class="inventory-list" id="inventory-list">
-            <div style="text-align: center; color: #777;">Загрузка...</div>
+    <!-- ЭКРАН БЛОКИРОВКИ -->
+    <div id="banned-screen">
+        <div class="banned-box">
+            <div style="font-size: 54px; margin-bottom: 15px;">🚫</div>
+            <h2 style="color: #ff3333; margin-top: 0; margin-bottom: 10px;">Доступ заблокирован</h2>
+            <p style="color: #aaa; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
+                Ваш аккаунт был заблокирован администрацией. Вы больше не можете открывать кейсы и пользоваться сервисом.
+            </p>
+            <div style="background: #111; padding: 8px 15px; border-radius: 6px; font-size: 13px; color: #777; display: inline-block;">
+                Статус: <span style="color: #ff3333; font-weight: bold;">В банне</span>
+            </div>
         </div>
     </div>
 
-    <!-- Вкладка Админки -->
-    <div id="section-admin" class="view-section">
-        <div class="nav-tabs" style="margin-bottom: 10px; flex-shrink: 0;">
-            <button class="tab-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')">Призы</button>
-            <button class="tab-btn" id="subtab-stats" onclick="switchAdminSub('stats')">Статистика</button>
-            <button class="tab-btn" id="subtab-ban" onclick="switchAdminSub('ban')">Баны</button>
-            <button class="tab-btn" id="subtab-users" onclick="switchAdminSub('users')">Юзеры</button>
-            <button class="tab-btn" id="subtab-admins" onclick="switchAdminSub('admins')">Админы</button>
-        </div>
-
-        <!-- Подвкладка: Управление призами -->
-        <div id="admin-sub-prizes" class="admin-sub-section" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
-            <div style="font-size: 11px; margin-bottom: 5px; color: #aaa;">Шансы призов:</div>
-            <div class="admin-list" id="admin-prizes-list">
-                <div style="text-align: center; color: #777;">Загрузка...</div>
-            </div>
-            
-            <div class="add-prize-form" style="margin-bottom: 15px;">
-                <input type="text" id="new-name" placeholder="Название приза">
-                <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)">
-                <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
-                <input type="number" id="new-weight" placeholder="Шанс (вес)">
-                <input type="text" id="new-promo" placeholder="Префикс промокода">
-                <button class="main-btn" style="font-size: 11px; padding: 8px;" onclick="addPrize()">Добавить приз</button>
-            </div>
-        </div>
-
-        <!-- Подвкладка: Статистика -->
-        <div id="admin-sub-stats" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <div class="stats-box" id="stats-content">
-                <div>Загрузка статистики...</div>
-            </div>
-        </div>
-
-        <!-- Подвкладка: Баны и Сброс таймера -->
-        <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Управление блокировками:</div>
-            <div class="add-prize-form" style="margin-bottom: 15px;">
-                <input type="text" id="ban-username" placeholder="Юзернейм ТГ (например: @bad_user)">
-                <div style="display: flex; gap: 6px;">
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--secondary); color: #fff; flex: 1;" onclick="setBanStatus(1)">Забанить</button>
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--primary); color: var(--bg); flex: 1;" onclick="setBanStatus(0)">Разбанить</button>
-                </div>
-                <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff9800; color: #fff; margin-top: 5px;" onclick="resetTimer()">Сбросить таймер (дать открыть кейс)</button>
-            </div>
-
-            <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Список забаненных:</div>
-            <div class="admin-list" id="banned-users-list">
-                <div style="text-align: center; color: #777;">Загрузка...</div>
-            </div>
-        </div>
-
-        <!-- Подвкладка: Все пользователи -->
-        <div id="admin-sub-users" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <div style="font-size: 11px; margin-bottom: 5px; color: var(--primary);">Все пользователи бота:</div>
-            <div class="admin-list" id="all-users-list">
-                <div style="text-align: center; color: #777;">Загрузка...</div>
-            </div>
-        </div>
-
-        <!-- Подвкладка: Список админов и назначение -->
-        <div id="admin-sub-admins" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <div id="super-admin-section" style="display:none; width: 310px; margin-bottom: 15px;">
-                <div style="font-size: 11px; margin-bottom: 4px; color: var(--secondary); font-weight: bold;">Назначить админа:</div>
-                <div class="add-prize-form">
-                    <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--secondary); color: #fff;" onclick="addNewAdmin()">Назначить</button>
-                </div>
-            </div>
-
-            <div style="font-size: 11px; margin-bottom: 5px; color: var(--primary);">Список администраторов:</div>
-            <div class="admin-list" id="admins-list-container">
-                <div style="text-align: center; color: #777;">Загрузка...</div>
-            </div>
+    <div class="container">
+        <h1>CYBER CASE</h1>
+        <div id="app">
+            <p>Загрузка данных...</p>
         </div>
     </div>
 
     <script>
-        // Безопасная функция отображения иконки (если картинка не грузится — автоматически заменяется на эмодзи)
-        function getIconHtml(icon, size = '20px') {
-            if (!icon) return '🎁';
-            if (icon.startsWith('http') || icon.startsWith('/')) {
-                return `<img src="${icon}" style="width:${size};height:${size};vertical-align:middle;object-fit:contain;" onerror="this.outerHTML='🎁'">`;
-            }
-            return icon;
-        }
+        // Получаем данные пользователя (например, из Telegram WebApp или дефолтные для теста)
+        const urlParams = new URLSearchParams(window.location.search);
+        const userId = urlParams.get('userId') || 'test_user_1';
+        const username = urlParams.get('username') || 'mironova92';
 
-        if (window.APP_CONFIG) {
-            const cfg = window.APP_CONFIG;
-            document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
-            
-            const caseVis = document.getElementById('case-visual');
-            if (cfg.logoImage) {
-                if (cfg.logoImage.startsWith('http')) {
-                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo" onerror="this.outerHTML='🎁'">`;
-                } else {
-                    caseVis.innerText = cfg.logoImage;
-                }
-            }
-            
-            const root = document.documentElement;
-            if (cfg.primaryColor) root.style.setProperty('--primary', cfg.primaryColor);
-            if (cfg.secondaryColor) root.style.setProperty('--secondary', cfg.secondaryColor);
-            if (cfg.backgroundColor) root.style.setProperty('--bg', cfg.backgroundColor);
-            if (cfg.cardBackground) root.style.setProperty('--card-bg', cfg.cardBackground);
-        }
-
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
-        const username = tg.initDataUnsafe?.user?.username || '';
-
-        let cachedServerPrizes = [];
-        let isSpinning = false;
-        let isSuperAdmin = false;
-
-        async function checkUserStatus() {
-            const btn = document.getElementById('action-button');
-            const msg = document.getElementById('result-message');
-            const caseVisual = document.getElementById('case-visual');
-            const rollerWindow = document.getElementById('roller-window');
-
-            try {
-                const res = await fetch(`/api/status?userId=${userId}&username=${username}`);
-                const data = await res.json();
-
-                if (data.isBanned) {
-                    rollerWindow.style.display = 'none';
-                    caseVisual.style.display = 'flex';
-                    caseVisual.innerText = '🚫';
-                    
-                    btn.disabled = true;
-                    btn.innerText = 'Доступ заблокирован';
-                    
-                    msg.style.color = 'var(--secondary)';
-                    msg.innerHTML = '<b>Внимание!</b><br>Ваш аккаунт заблокирован администратором клуба.';
-                    return;
-                }
-
-                if (data.canSpin === false) {
-                    btn.disabled = true;
-                    btn.innerText = 'Кейс недоступен';
-                    msg.style.color = 'var(--secondary)';
-                    msg.innerText = `⏳ Вы уже открывали кейс сегодня. Следующий будет доступен примерно через ${data.hoursLeft} ч.`;
-                } else {
-                    btn.disabled = false;
-                    btn.innerText = 'Открыть кейс';
-                    msg.innerText = '';
-                }
-            } catch (e) {
-                console.error('Ошибка проверки статуса', e);
-            }
-        }
-
-        async function checkAdminAccess() {
-            try {
-                const res = await fetch(`/api/admin/check?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                if (data.isAdmin) {
-                    isSuperAdmin = data.isSuper;
-                    const tabsNav = document.getElementById('nav-tabs');
-                    if (!document.getElementById('tab-admin')) {
-                        const adminTabBtn = document.createElement('button');
-                        adminTabBtn.className = 'tab-btn';
-                        adminTabBtn.id = 'tab-admin';
-                        adminTabBtn.innerText = '⚙️ Админка';
-                        adminTabBtn.onclick = () => switchTab('admin');
-                        tabsNav.appendChild(adminTabBtn);
+        function checkUserStatus() {
+            fetch(`/api/status?userId=${userId}&username=${username}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.isBanned) {
+                        document.getElementById('banned-screen').style.display = 'flex';
+                        document.getElementById('app').innerHTML = '<p style="color: #ff3333;">Аккаунт заблокирован.</p>';
+                    } else {
+                        document.getElementById('app').innerHTML = '<p style="color: #00ffcc;">Добро пожаловать! Можете крутить кейс.</p>';
                     }
-
-                    if (isSuperAdmin) {
-                        document.getElementById('super-admin-section').style.display = 'block';
-                    }
-                }
-            } catch (e) {
-                console.error('Ошибка проверки админа', e);
-            }
+                })
+                .catch(err => {
+                    console.error('Ошибка проверки статуса:', err);
+                });
         }
 
-        checkAdminAccess();
         checkUserStatus();
-
-        function switchTab(tab) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
-
-            if (tab === 'case') {
-                document.getElementById('tab-case').classList.add('active');
-                document.getElementById('section-case').classList.add('active');
-                checkUserStatus();
-            } else if (tab === 'inventory') {
-                document.getElementById('tab-inventory').classList.add('active');
-                document.getElementById('section-inventory').classList.add('active');
-                loadInventory();
-            } else if (tab === 'admin') {
-                document.getElementById('tab-admin').classList.add('active');
-                document.getElementById('section-admin').classList.add('active');
-                loadAdminPrizes();
-            }
-        }
-
-        function switchAdminSub(sub) {
-            ['prizes', 'stats', 'ban', 'users', 'admins'].forEach(s => {
-                const btnEl = document.getElementById(`subtab-${s}`);
-                const secEl = document.getElementById(`admin-sub-${s}`);
-                if (btnEl) btnEl.classList.remove('active');
-                if (secEl) secEl.style.display = 'none';
-            });
-            const activeBtn = document.getElementById(`subtab-${sub}`);
-            const activeSec = document.getElementById(`admin-sub-${sub}`);
-            if (activeBtn) activeBtn.classList.add('active');
-            if (activeSec) activeSec.style.display = 'flex';
-
-            if (sub === 'stats') loadStats();
-            if (sub === 'ban') loadBannedUsers();
-            if (sub === 'users') loadAllUsers();
-            if (sub === 'admins') loadAdminsList();
-        }
-
-        async function loadInventory() {
-            const listEl = document.getElementById('inventory-list');
-            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-            try {
-                const res = await fetch(`/api/inventory?userId=${userId}`);
-                const data = await res.json();
-                if (!data.items || data.items.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; color: #777;">У вас пока нет призов</div>';
-                    return;
-                }
-                listEl.innerHTML = '';
-                data.items.forEach(item => {
-                    const card = document.createElement('div');
-                    card.className = 'inventory-card';
-                    
-                    let iconDisplay = getIconHtml(item.icon, '20px');
-                    let promoBlock = `<div style="color: var(--secondary); font-weight: bold;">${item.promo}</div>`;
-                    let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
-
-                    card.innerHTML = `
-                        <div><b>${iconDisplay} ${item.prize_name}</b><br>${statusText}</div>
-                        ${promoBlock}
-                    `;
-                    listEl.appendChild(card);
-                });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
-            }
-        }
-
-        async function loadAdminPrizes() {
-            const listEl = document.getElementById('admin-prizes-list');
-            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-            try {
-                const res = await fetch(`/api/admin/prizes?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                if (!data.prizes) return;
-
-                cachedServerPrizes = data.prizes;
-                listEl.innerHTML = '';
-                data.prizes.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'admin-card';
-                    let iconDisplay = getIconHtml(p.icon, '20px');
-                    card.innerHTML = `
-                        <div>${iconDisplay} <b>${p.name}</b></div>
-                        <div style="display: flex; gap: 5px; align-items: center;">
-                            <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
-                            <button onclick="deletePrize(${p.id})">X</button>
-                        </div>
-                    `;
-                    listEl.appendChild(card);
-                });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
-            }
-        }
-
-        async function loadStats() {
-            const statsBox = document.getElementById('stats-content');
-            statsBox.innerHTML = 'Загрузка...';
-            try {
-                const res = await fetch(`/api/admin/stats?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                statsBox.innerHTML = `
-                    <div>🎮 Всего открытий кейсов: <b>${data.totalSpins}</b></div>
-                    <div>👥 Уникальных игроков: <b>${data.totalUsers}</b></div>
-                    <div>🚫 Заблокированных игроков: <b>${data.bannedUsers}</b></div>
-                `;
-            } catch (e) {
-                statsBox.innerHTML = 'Ошибка загрузки статистики';
-            }
-        }
-
-        async function loadBannedUsers() {
-            const listEl = document.getElementById('banned-users-list');
-            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-            try {
-                const res = await fetch(`/api/admin/banned-list?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                if (!data.bannedUsers || data.bannedUsers.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Нет заблокированных пользователей</div>';
-                    return;
-                }
-                listEl.innerHTML = '';
-                data.bannedUsers.forEach(u => {
-                    const card = document.createElement('div');
-                    card.className = 'admin-card';
-                    card.innerHTML = `
-                        <div>🚫 <b>@${u.username}</b></div>
-                        <button style="background: var(--primary); color: var(--bg);" onclick="quickUnban('${u.username}')">Разбанить</button>
-                    `;
-                    listEl.appendChild(card);
-                });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
-            }
-        }
-
-        async function loadAllUsers() {
-            const listEl = document.getElementById('all-users-list');
-            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-            try {
-                const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                if (!data.users || data.users.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Нет пользователей</div>';
-                    return;
-                }
-                listEl.innerHTML = '';
-                data.users.forEach(u => {
-                    const card = document.createElement('div');
-                    card.className = 'admin-card';
-                    let statusBadge = u.is_banned ? '<span style="color:var(--secondary);">[Бан]</span>' : '<span style="color:var(--primary);">[Активен]</span>';
-                    card.innerHTML = `
-                        <div><b>@${u.username || 'id: ' + u.id}</b> ${statusBadge}</div>
-                        <button onclick="document.getElementById('ban-username').value='${u.username || u.id}'; switchAdminSub('ban');">Управлять</button>
-                    `;
-                    listEl.appendChild(card);
-                });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
-            }
-        }
-
-        async function loadAdminsList() {
-            const listEl = document.getElementById('admins-list-container');
-            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
-            try {
-                const res = await fetch(`/api/admin/list?userId=${userId}&username=${username}`);
-                const data = await res.json();
-                if (!data.admins || data.admins.length === 0) {
-                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Список пуст</div>';
-                    return;
-                }
-                listEl.innerHTML = '';
-                data.admins.forEach(adm => {
-                    const card = document.createElement('div');
-                    card.className = 'admin-card';
-                    let roleBadge = adm.is_super ? '<span style="color:var(--secondary); font-size:10px;">[Супер-админ]</span>' : '<span style="color:var(--primary); font-size:10px;">[Админ]</span>';
-                    
-                    let removeBtn = '';
-                    if (isSuperAdmin && adm.username.toLowerCase() !== 'ropogku') {
-                        removeBtn = `<button onclick="removeAdmin('${adm.username}')">Снять</button>`;
-                    }
-
-                    card.innerHTML = `
-                        <div><b>@${adm.username}</b> ${roleBadge}</div>
-                        ${removeBtn}
-                    `;
-                    listEl.appendChild(card);
-                });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
-            }
-        }
-
-        async function setBanStatus(banState) {
-            const targetUsername = document.getElementById('ban-username').value;
-            if (!targetUsername) return alert('Введите юзернейм!');
-
-            const res = await fetch('/api/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert(banState === 1 ? 'Пользователь заблокирован!' : 'Пользователь разблокирован!');
-                document.getElementById('ban-username').value = '';
-                loadBannedUsers();
-            } else {
-                alert(data.error || 'Ошибка');
-            }
-        }
-
-        async function resetTimer() {
-            const targetUsername = document.getElementById('ban-username').value;
-            if (!targetUsername) return alert('Введите юзернейм!');
-
-            const res = await fetch('/api/admin/reset-timer', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('Таймер сброшен! Пользователь может снова открыть кейс.');
-                document.getElementById('ban-username').value = '';
-            } else {
-                alert(data.error || 'Ошибка');
-            }
-        }
-
-        async function quickUnban(targetUsername) {
-            await fetch('/api/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
-            });
-            loadBannedUsers();
-        }
-
-        async function updateWeight(prizeId) {
-            const inputEl = document.getElementById(`weight-${prizeId}`);
-            if (!inputEl) return;
-            const newWeight = Number(inputEl.value);
-            await fetch('/api/admin/update-prize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, prizeId, weight: newWeight })
-            });
-        }
-
-        async function addPrize() {
-            const nameInput = document.getElementById('new-name');
-            const iconInput = document.getElementById('new-icon');
-            const rarityInput = document.getElementById('new-rarity');
-            const weightInput = document.getElementById('new-weight');
-            const promoInput = document.getElementById('new-promo');
-
-            const name = nameInput.value;
-            const icon = iconInput.value;
-            const rarity = rarityInput.value;
-            const weight = Number(weightInput.value);
-            const promo_prefix = promoInput.value;
-
-            if (!name || !weight) return alert('Заполните название и шанс!');
-
-            const res = await fetch('/api/admin/add-prize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, name, icon, rarity, weight, promo_prefix })
-            });
-            const data = await res.json();
-            if (res.ok) {
-                nameInput.value = '';
-                iconInput.value = '';
-                rarityInput.value = '';
-                weightInput.value = '';
-                promoInput.value = '';
-                loadAdminPrizes();
-            } else {
-                alert(data.error || 'Ошибка добавления');
-            }
-        }
-
-        async function deletePrize(prizeId) {
-            await fetch('/api/admin/delete-prize', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, prizeId })
-            });
-            loadAdminPrizes();
-        }
-
-        async function addNewAdmin() {
-            const newAdminUsername = document.getElementById('new-admin-username').value;
-            if (!newAdminUsername) return alert('Введите юзернейм нового админа');
-
-            const res = await fetch('/api/admin/add-admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, newAdminUsername })
-            });
-            const data = await res.json();
-            if (data.success) {
-                alert('Администратор успешно назначен!');
-                document.getElementById('new-admin-username').value = '';
-                loadAdminsList();
-            } else {
-                alert(data.error || 'Ошибка');
-            }
-        }
-
-        async function removeAdmin(targetAdminUsername) {
-            if (!confirm(`Точно снять администратора @${targetAdminUsername}?`)) return;
-
-            const res = await fetch('/api/admin/remove-admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetAdminUsername })
-            });
-            const data = await res.json();
-            if (data.success) {
-                loadAdminsList();
-            } else {
-                alert(data.error || 'Ошибка');
-            }
-        }
-
-        async function startCase() {
-            if (isSpinning) return;
-            isSpinning = true;
-
-            const btn = document.getElementById('action-button');
-            const visual = document.getElementById('case-visual');
-            const windowEl = document.getElementById('roller-window');
-            const content = document.getElementById('roller-content');
-            const msg = document.getElementById('result-message');
-
-            btn.disabled = true;
-            btn.innerText = 'Выбираем приз...';
-            msg.innerText = '';
-            visual.style.display = 'none';
-            windowEl.style.display = 'block';
-
-            let serverData = null;
-
-            try {
-                const response = await fetch('/api/spin', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, username })
-                });
-                serverData = await response.json();
-
-                if (response.status !== 200) {
-                    isSpinning = false;
-                    btn.disabled = true;
-                    btn.innerText = 'Кейс недоступен';
-                    windowEl.style.display = 'none';
-                    visual.style.display = 'flex';
-                    msg.style.color = 'var(--secondary)';
-                    msg.innerText = serverData.error || 'Ошибка';
-                    return;
-                }
-            } catch (e) {
-                isSpinning = false;
-                btn.disabled = false;
-                btn.innerText = 'Открыть кейс';
-                windowEl.style.display = 'none';
-                visual.style.display = 'flex';
-                msg.style.color = 'var(--secondary)';
-                msg.innerText = 'Ошибка соединения';
-                return;
-            }
-
-            const winningPrize = serverData.prize;
-
-            let availablePrizes = cachedServerPrizes;
-            if (!availablePrizes || availablePrizes.length === 0) {
-                try {
-                    const res = await fetch(`/api/admin/prizes?userId=${userId}&username=${username}`);
-                    const data = await res.json();
-                    if (data.prizes) availablePrizes = data.prizes;
-                } catch (err) {}
-            }
-            if (!availablePrizes || availablePrizes.length === 0) {
-                availablePrizes = [{ name: winningPrize.name, icon: winningPrize.icon, rarity: winningPrize.rarity || 'common' }];
-            }
-
-            content.innerHTML = '';
-            for (let i = 0; i < 40; i++) {
-                const randomTemplate = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
-                const p = (i === 30) ? winningPrize : randomTemplate;
-                
-                const div = document.createElement('div');
-                div.className = `prize-item prize-${p.rarity || 'common'}`;
-                
-                let pIconDisplay = getIconHtml(p.icon, '30px');
-                div.innerHTML = `<div>${pIconDisplay}</div><div>${p.name}</div>`;
-                content.appendChild(div);
-            }
-
-            content.style.transition = 'none';
-            content.style.left = '0px';
-
-            const targetLeft = -(30 * 100 - 150 + 50);
-
-            setTimeout(() => {
-                content.style.transition = 'left 4s cubic-bezier(0.1, 0.8, 0.2, 1)';
-                content.style.left = `${targetLeft}px`;
-            }, 50);
-
-            setTimeout(() => {
-                isSpinning = false;
-                btn.disabled = true;
-                btn.innerText = 'Кейс уже открыт';
-                msg.style.color = 'var(--primary)';
-                
-                let winIconDisplay = getIconHtml(winningPrize.icon, '20px');
-                
-                msg.innerHTML = `🎉 Вы выиграли: <b>${winIconDisplay} ${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
-            }, 4100);
-        }
     </script>
 </body>
 </html>
