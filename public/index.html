@@ -285,6 +285,7 @@
             <button class="tab-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')">Призы</button>
             <button class="tab-btn" id="subtab-stats" onclick="switchAdminSub('stats')">Статистика</button>
             <button class="tab-btn" id="subtab-ban" onclick="switchAdminSub('ban')">Баны</button>
+            <button class="tab-btn" id="subtab-users" onclick="switchAdminSub('users')">Юзеры</button>
             <button class="tab-btn" id="subtab-admins" onclick="switchAdminSub('admins')">Админы</button>
         </div>
 
@@ -330,6 +331,14 @@
             </div>
         </div>
 
+        <!-- Подвкладка: Все пользователи -->
+        <div id="admin-sub-users" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
+            <div style="font-size: 11px; margin-bottom: 5px; color: var(--primary);">Все пользователи бота:</div>
+            <div class="admin-list" id="all-users-list">
+                <div style="text-align: center; color: #777;">Загрузка...</div>
+            </div>
+        </div>
+
         <!-- Подвкладка: Список админов и назначение -->
         <div id="admin-sub-admins" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div id="super-admin-section" style="display:none; width: 310px; margin-bottom: 15px;">
@@ -348,7 +357,15 @@
     </div>
 
     <script>
-        // Применяем настройки из config.js
+        // Безопасная функция отображения иконки (если картинка не грузится — автоматически заменяется на эмодзи)
+        function getIconHtml(icon, size = '20px') {
+            if (!icon) return '🎁';
+            if (icon.startsWith('http') || icon.startsWith('/')) {
+                return `<img src="${icon}" style="width:${size};height:${size};vertical-align:middle;object-fit:contain;" onerror="this.outerHTML='🎁'">`;
+            }
+            return icon;
+        }
+
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
@@ -356,7 +373,7 @@
             const caseVis = document.getElementById('case-visual');
             if (cfg.logoImage) {
                 if (cfg.logoImage.startsWith('http')) {
-                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo">`;
+                    caseVis.innerHTML = `<img src="${cfg.logoImage}" alt="Logo" onerror="this.outerHTML='🎁'">`;
                 } else {
                     caseVis.innerText = cfg.logoImage;
                 }
@@ -465,7 +482,7 @@
         }
 
         function switchAdminSub(sub) {
-            ['prizes', 'stats', 'ban', 'admins'].forEach(s => {
+            ['prizes', 'stats', 'ban', 'users', 'admins'].forEach(s => {
                 const btnEl = document.getElementById(`subtab-${s}`);
                 const secEl = document.getElementById(`admin-sub-${s}`);
                 if (btnEl) btnEl.classList.remove('active');
@@ -478,6 +495,7 @@
 
             if (sub === 'stats') loadStats();
             if (sub === 'ban') loadBannedUsers();
+            if (sub === 'users') loadAllUsers();
             if (sub === 'admins') loadAdminsList();
         }
 
@@ -485,7 +503,7 @@
             const listEl = document.getElementById('inventory-list');
             listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
             try {
-                const res = await fetch(`/api/inventory?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/inventory?userId=${userId}`);
                 const data = await res.json();
                 if (!data.items || data.items.length === 0) {
                     listEl.innerHTML = '<div style="text-align: center; color: #777;">У вас пока нет призов</div>';
@@ -496,7 +514,7 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     
-                    let iconDisplay = item.icon && item.icon.startsWith('http') ? `<img src="${item.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : item.icon;
+                    let iconDisplay = getIconHtml(item.icon, '20px');
                     let promoBlock = `<div style="color: var(--secondary); font-weight: bold;">${item.promo}</div>`;
                     let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
 
@@ -524,7 +542,7 @@
                 data.prizes.forEach(p => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    let iconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : p.icon;
+                    let iconDisplay = getIconHtml(p.icon, '20px');
                     card.innerHTML = `
                         <div>${iconDisplay} <b>${p.name}</b></div>
                         <div style="display: flex; gap: 5px; align-items: center;">
@@ -572,6 +590,32 @@
                     card.innerHTML = `
                         <div>🚫 <b>@${u.username}</b></div>
                         <button style="background: var(--primary); color: var(--bg);" onclick="quickUnban('${u.username}')">Разбанить</button>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadAllUsers() {
+            const listEl = document.getElementById('all-users-list');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (!data.users || data.users.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Нет пользователей</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.users.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    let statusBadge = u.is_banned ? '<span style="color:var(--secondary);">[Бан]</span>' : '<span style="color:var(--primary);">[Активен]</span>';
+                    card.innerHTML = `
+                        <div><b>@${u.username || 'id: ' + u.id}</b> ${statusBadge}</div>
+                        <button onclick="document.getElementById('ban-username').value='${u.username || u.id}'; switchAdminSub('ban');">Управлять</button>
                     `;
                     listEl.appendChild(card);
                 });
@@ -784,12 +828,12 @@
                 }
             } catch (e) {
                 isSpinning = false;
-                    btn.disabled = false;
-                    btn.innerText = 'Открыть кейс';
-                    windowEl.style.display = 'none';
-                    visual.style.display = 'flex';
-                    msg.style.color = 'var(--secondary)';
-                    msg.innerText = 'Ошибка соединения';
+                btn.disabled = false;
+                btn.innerText = 'Открыть кейс';
+                windowEl.style.display = 'none';
+                visual.style.display = 'flex';
+                msg.style.color = 'var(--secondary)';
+                msg.innerText = 'Ошибка соединения';
                 return;
             }
 
@@ -815,7 +859,7 @@
                 const div = document.createElement('div');
                 div.className = `prize-item prize-${p.rarity || 'common'}`;
                 
-                let pIconDisplay = p.icon && p.icon.startsWith('http') ? `<img src="${p.icon}" style="width:30px;height:30px;object-fit:contain;">` : p.icon;
+                let pIconDisplay = getIconHtml(p.icon, '30px');
                 div.innerHTML = `<div>${pIconDisplay}</div><div>${p.name}</div>`;
                 content.appendChild(div);
             }
@@ -836,7 +880,7 @@
                 btn.innerText = 'Кейс уже открыт';
                 msg.style.color = 'var(--primary)';
                 
-                let winIconDisplay = winningPrize.icon && winningPrize.icon.startsWith('http') ? `<img src="${winningPrize.icon}" style="width:20px;height:20px;vertical-align:middle;object-fit:contain;">` : winningPrize.icon;
+                let winIconDisplay = getIconHtml(winningPrize.icon, '20px');
                 
                 msg.innerHTML = `🎉 Вы выиграли: <b>${winIconDisplay} ${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
             }, 4100);
