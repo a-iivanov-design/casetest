@@ -50,6 +50,7 @@ function initDatabase() {
 
         db.run(`CREATE TABLE IF NOT EXISTS admins (
             telegram_id TEXT PRIMARY KEY,
+            username TEXT,
             club_id TEXT DEFAULT 'default_club',
             role TEXT DEFAULT 'admin'
         )`);
@@ -75,10 +76,13 @@ function initDatabase() {
 }
 
 function checkAdmin(userId, username, callback) {
-    if (username === SUPER_ADMIN_USERNAME || userId === SUPER_ADMIN_USERNAME) {
-        return callback(true, 'default_club', true); // true в конце означает, что это супер-админ
+    const cleanUsername = username ? username.replace('@', '').toLowerCase() : '';
+    
+    if (cleanUsername === SUPER_ADMIN_USERNAME.toLowerCase() || userId === SUPER_ADMIN_USERNAME) {
+        return callback(true, 'default_club', true); // Супер-админ
     }
-    db.get(`SELECT club_id FROM admins WHERE telegram_id = ?`, [userId], (err, row) => {
+
+    db.get(`SELECT club_id FROM admins WHERE telegram_id = ? OR LOWER(username) = ?`, [userId, cleanUsername], (err, row) => {
         if (row) {
             callback(true, row.club_id, false);
         } else {
@@ -93,7 +97,8 @@ app.post('/api/spin', (req, res) => {
     const username = String(req.body.username || '');
     const clubId = req.body.clubId || 'default_club';
 
-    const isSuper = (username === SUPER_ADMIN_USERNAME || userId === SUPER_ADMIN_USERNAME);
+    const cleanUsername = username.replace('@', '').toLowerCase();
+    const isSuper = (cleanUsername === SUPER_ADMIN_USERNAME.toLowerCase() || userId === SUPER_ADMIN_USERNAME);
 
     const proceedWithSpin = () => {
         db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
@@ -213,15 +218,21 @@ app.post('/api/admin/delete-prize', (req, res) => {
     });
 });
 
-// Добавление нового администратора (доступно только супер-админу)
+// Добавление нового администратора по юзернейму
 app.post('/api/admin/add-admin', (req, res) => {
-    const { userId, username, newAdminId, clubId } = req.body;
+    const { userId, username, newAdminUsername, clubId } = req.body;
     checkAdmin(String(userId), String(username), (isAdmin, _, isSuper) => {
         if (!isSuper) return res.status(403).json({ error: 'Только главный администратор может добавлять других админов' });
         
+        const cleanNewUsername = newAdminUsername ? newAdminUsername.replace('@', '').trim() : '';
+        if (!cleanNewUsername) return res.status(400).json({ error: 'Укажите юзернейм!' });
+
+        // В качестве временного ID используем никнейм в нижнем регистре, если точный ID неизвестен
+        const dummyId = `username_${cleanNewUsername.toLowerCase()}`;
+
         db.run(
-            `INSERT OR REPLACE INTO admins (telegram_id, club_id, role) VALUES (?, ?, 'admin')`,
-            [String(newAdminId), clubId || 'default_club'],
+            `INSERT OR REPLACE INTO admins (telegram_id, username, club_id, role) VALUES (?, ?, ?, 'admin')`,
+            [dummyId, cleanNewUsername, clubId || 'default_club'],
             (err) => {
                 if (err) return res.status(500).json({ error: 'Ошибка добавления админа' });
                 res.json({ success: true });
