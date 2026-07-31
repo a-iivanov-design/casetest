@@ -31,6 +31,11 @@ async function initDB() {
 
 initDB();
 
+// Приветствие для главной страницы сайта
+app.get('/', (req, res) => {
+    res.send('Cyber Case Bot Server is running!');
+});
+
 // Эндпоинт для проверки и сохранения пользователя
 app.post('/api/check-admin', async (req, res) => {
     try {
