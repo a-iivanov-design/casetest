@@ -16,16 +16,14 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Инициализация базы данных и пересоздание таблиц с правильной структурой
+// Инициализация базы данных и пересоздание таблиц
 async function initDB() {
     try {
-        // Сбрасываем старые таблицы с поврежденной структурой
         await db.execute(`DROP TABLE IF EXISTS inventory`);
         await db.execute(`DROP TABLE IF EXISTS users`);
         await db.execute(`DROP TABLE IF EXISTS prizes`);
         await db.execute(`DROP TABLE IF EXISTS admins`);
 
-        // Создаем таблицы заново с корректными полями
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
@@ -57,10 +55,10 @@ async function initDB() {
             )
         `);
 
+        // Таблица администраторов (без club_id)
         await db.execute(`
             CREATE TABLE IF NOT EXISTS admins (
                 username TEXT PRIMARY KEY,
-                club_id TEXT,
                 is_super INTEGER DEFAULT 0
             )
         `);
@@ -86,13 +84,13 @@ async function initDB() {
             });
         }
 
-        // Автоматически назначаем вас (ropogku) супер-админом
+        // Автоматически назначаем ropogku супер-админом
         await db.execute({
-            sql: "INSERT OR IGNORE INTO admins (username, club_id, is_super) VALUES (?, ?, ?)",
-            args: ['ropogku', 'default_club', 1]
+            sql: "INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, ?)",
+            args: ['ropogku', 1]
         });
 
-        console.log('База данных успешно инициализирована с админом ropogku.');
+        console.log('База данных успешно инициализирована.');
     } catch (err) {
         console.error('Ошибка инициализации БД:', err);
     }
@@ -104,7 +102,7 @@ async function checkAdmin(userId, username) {
     if (!username) return { isAdmin: false, isSuper: false };
     const cleanUsername = username.replace('@', '').toLowerCase();
     
-    // Принудительно даем права ropogku, даже если в базе запись слетела
+    // Главный супер-админ всегда имеет полный доступ
     if (cleanUsername === 'ropogku') {
         return { isAdmin: true, isSuper: true };
     }
@@ -175,7 +173,7 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// 3. Инвентарь пользователя (авто-удаление/просрочка призов через 48 часов)
+// 3. Инвентарь пользователя (автоудаление призов через 48 часов)
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -191,7 +189,6 @@ app.get('/api/inventory', async (req, res) => {
             const wonDate = new Date(item.won_at);
             const diffHours = (now - wonDate) / (1000 * 60 * 60);
 
-            // Если прошло больше 48 часов (2 дня) — удаляем приз из базы данных
             if (diffHours > 48) {
                 await db.execute({
                     sql: "DELETE FROM inventory WHERE id = ?",
@@ -200,7 +197,7 @@ app.get('/api/inventory', async (req, res) => {
             } else {
                 items.push({
                     ...item,
-                    isExpired: diffHours > 48
+                    isExpired: false
                 });
             }
         }
@@ -344,7 +341,7 @@ app.post('/api/admin/delete-prize', async (req, res) => {
     }
 });
 
-// Статистика открытия кейсов
+// Статистика открытия кейсов и пользователей
 app.get('/api/admin/stats', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -374,7 +371,6 @@ app.post('/api/admin/ban', async (req, res) => {
 
         const cleanTarget = targetUsername.replace('@', '').toLowerCase();
         
-        // Проверим, есть ли такой юзер в базе, если нет — создадим со статусом бана, чтобы он не смог зайти
         const checkUser = await db.execute({
             sql: "SELECT * FROM users WHERE LOWER(username) = ?",
             args: [cleanTarget]
@@ -399,20 +395,47 @@ app.post('/api/admin/ban', async (req, res) => {
     }
 });
 
+// Назначение нового администратора
 app.post('/api/admin/add-admin', async (req, res) => {
     try {
-        const { userId, username, newAdminUsername, clubId } = req.body;
+        const { userId, username, newAdminUsername } = req.body;
         const admin = await checkAdmin(userId, username);
         if (!admin.isSuper) return res.status(403).json({ error: 'Недостаточно прав (нужен супер-админ)' });
 
         const cleanNewAdmin = newAdminUsername.replace('@', '').toLowerCase();
         await db.execute({
-            sql: "INSERT INTO admins (username, club_id, is_super) VALUES (?, ?, 0) ON CONFLICT(username) DO UPDATE SET club_id = ?",
-            args: [cleanNewAdmin, clubId, clubId]
+            sql: "INSERT INTO admins (username, is_super) VALUES (?, 0) ON CONFLICT(username) DO UPDATE SET is_super = 0",
+            args: [cleanNewAdmin]
         });
 
         res.json({ success: true });
     } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Разжалование администратора (удаление из списка админов)
+app.post('/api/admin/remove-admin', async (req, res) => {
+    try {
+        const { userId, username, targetAdminUsername } = req.body;
+        const admin = await checkAdmin(userId, username);
+        if (!admin.isSuper) return res.status(403).json({ error: 'Недостаточно прав (нужен супер-админ)' });
+
+        const cleanTarget = targetAdminUsername.replace('@', '').toLowerCase();
+        
+        // Главного админа ropogku разжаловать нельзя
+        if (cleanTarget === 'ropogku') {
+            return res.status(400).json({ error: 'Нельзя разжаловать главного администратора!' });
+        }
+
+        await db.execute({
+            sql: "DELETE FROM admins WHERE LOWER(username) = ?",
+            args: [cleanTarget]
+        });
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error(e);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
