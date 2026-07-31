@@ -267,7 +267,7 @@ app.get('/api/admin/prizes', async (req, res) => {
     try {
         const { userId, username } = req.query;
         const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403.).json({ error: 'Доступ запрещен' });
+        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
 
         const result = await db.execute("SELECT * FROM prizes");
         res.json({ prizes: result.rows });
@@ -357,7 +357,7 @@ app.post('/api/admin/ban', async (req, res) => {
         });
 
         if (result.rowsAffected === 0) {
-            return res.status(404).json({ error: 'Пользователь с таким юзернеймом не найден в базе (он должен хотя бы раз открыть приложение)' });
+            return res.status(404).json({ error: 'Пользователь с таким юзернеймом не найден в базе' });
         }
 
         res.json({ success: true });
@@ -370,7 +370,6 @@ app.post('/api/admin/add-admin', async (req, res) => {
     try {
         const { userId, username, newAdminUsername, clubId } = req.body;
         const admin = await checkAdmin(userId, username);
-        // Добавлять новых админов может только супер-админ
         if (!admin.isSuper) return res.status(403).json({ error: 'Недостаточно прав (нужен супер-админ)' });
 
         const cleanNewAdmin = newAdminUsername.replace('@', '').toLowerCase();
