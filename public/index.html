@@ -13,10 +13,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             height: 100vh;
             margin: 0;
             overflow: hidden;
+            padding-top: 15px;
+            box-sizing: border-box;
         }
 
         h1 {
@@ -24,6 +25,7 @@
             text-shadow: 0 0 10px #00e676;
             font-size: 18px;
             margin-bottom: 10px;
+            flex-shrink: 0;
         }
 
         .nav-tabs {
@@ -32,6 +34,7 @@
             margin-bottom: 15px;
             flex-wrap: wrap;
             justify-content: center;
+            flex-shrink: 0;
         }
 
         .tab-btn {
@@ -56,6 +59,10 @@
             flex-direction: column;
             align-items: center;
             width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: 30px;
+            box-sizing: border-box;
         }
 
         .view-section.active {
@@ -74,6 +81,7 @@
             margin-bottom: 20px;
             font-size: 50px;
             box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+            flex-shrink: 0;
         }
 
         .roller-window {
@@ -86,6 +94,7 @@
             border: 1px solid #333;
             margin-bottom: 20px;
             display: none;
+            flex-shrink: 0;
         }
 
         .roller-content {
@@ -135,6 +144,7 @@
             border-radius: 50px;
             cursor: pointer;
             box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
+            flex-shrink: 0;
         }
 
         button.main-btn:disabled {
@@ -151,6 +161,7 @@
             text-align: center;
             min-height: 2.5em;
             padding: 0 15px;
+            flex-shrink: 0;
         }
 
         .inventory-list, .admin-list {
@@ -255,20 +266,20 @@
 
     <!-- Вкладка Админки -->
     <div id="section-admin" class="view-section">
-        <div class="nav-tabs" style="margin-bottom: 10px;">
+        <div class="nav-tabs" style="margin-bottom: 10px; flex-shrink: 0;">
             <button class="tab-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')">Призы</button>
             <button class="tab-btn" id="subtab-stats" onclick="switchAdminSub('stats')">Статистика</button>
             <button class="tab-btn" id="subtab-ban" onclick="switchAdminSub('ban')">Баны</button>
         </div>
 
         <!-- Подвкладка: Управление призами -->
-        <div id="admin-sub-prizes" class="admin-sub-section" style="display: flex; flex-direction: column; align-items: center;">
+        <div id="admin-sub-prizes" class="admin-sub-section" style="display: flex; flex-direction: column; align-items: center; width: 100%;">
             <div style="font-size: 11px; margin-bottom: 5px; color: #aaa;">Шансы призов:</div>
             <div class="admin-list" id="admin-prizes-list">
                 <div style="text-align: center; color: #777;">Загрузка...</div>
             </div>
             
-            <div class="add-prize-form">
+            <div class="add-prize-form" style="margin-bottom: 15px;">
                 <input type="text" id="new-name" placeholder="Название приза">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи)">
                 <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
@@ -279,14 +290,14 @@
         </div>
 
         <!-- Подвкладка: Статистика -->
-        <div id="admin-sub-stats" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center;">
+        <div id="admin-sub-stats" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div class="stats-box" id="stats-content">
                 <div>Загрузка статистики...</div>
             </div>
         </div>
 
         <!-- Подвкладка: Баны пользователей -->
-        <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center;">
+        <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div style="font-size: 11px; margin-bottom: 5px; color: #ff1744;">Управление блокировками:</div>
             <div class="add-prize-form">
                 <input type="text" id="ban-username" placeholder="Юзернейм ТГ (например: @bad_user)">
@@ -298,12 +309,12 @@
         </div>
 
         <!-- Секция добавления главных админов (только для супер-админа) -->
-        <div id="super-admin-section" style="display:none; width: 310px; margin-top: 10px; border-top: 1px solid #333; padding-top: 8px;">
-            <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744;">Назначить админа:</div>
+        <div id="super-admin-section" style="display:none; width: 310px; margin-top: 15px; border-top: 1px solid #333; padding-top: 12px; margin-bottom: 20px;">
+            <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744; font-weight: bold;">Назначить админа:</div>
             <div class="add-prize-form">
                 <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
                 <input type="text" id="new-club-id" placeholder="ID клуба">
-                <button class="main-btn" style="font-size: 11px; padding: 5px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
+                <button class="main-btn" style="font-size: 11px; padding: 7px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
             </div>
         </div>
     </div>
@@ -326,7 +337,6 @@
         let isSpinning = false;
         let isSuperAdmin = false;
 
-        // Проверяем статус при загрузке приложения (доступен ли кейс)
         async function checkUserStatus() {
             const btn = document.getElementById('action-button');
             const msg = document.getElementById('result-message');
