@@ -15,7 +15,6 @@ async function initDb() {
         driver: sqlite3.Database
     });
 
-    // Создание таблиц при необходимости
     await db.exec(`
         CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
@@ -46,6 +45,12 @@ async function initDb() {
             won_at TEXT
         );
     `);
+
+    // Создаем дефолтного супер-админа, если таблица пуста (замените на свой юзернейм при необходимости)
+    const adminCount = await db.get(`SELECT COUNT(*) as cnt FROM admins`);
+    if (adminCount.cnt === 0) {
+        await db.run(`INSERT INTO admins (user_id, username, is_admin, is_super) VALUES (?, ?, 1, 1)`, ['12345', 'ropogku']);
+    }
 }
 initDb();
 
@@ -58,7 +63,7 @@ async function checkIsAdmin(userId, username) {
     return admin;
 }
 
-// Проверка статуса пользователя (бан + кулдаун кейса)
+// Проверка статуса пользователя (бан + кулдаун)
 app.get('/api/status', async (req, res) => {
     const { userId, username } = req.query;
     if (!userId) return res.status(400).json({ error: 'No userId' });
@@ -91,7 +96,7 @@ app.get('/api/status', async (req, res) => {
     res.json({ isBanned: false, canSpin: true });
 });
 
-// Проверка прав администратора для фронтенда
+// Проверка прав администратора
 app.get('/api/admin/check', async (req, res) => {
     const { userId, username } = req.query;
     const admin = await checkIsAdmin(userId, username);
@@ -102,7 +107,169 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// Получение списка всех пользователей (для админки)
+// Открытие кейса (розыгрыш)
+app.post('/api/spin', async (req, res) => {
+    const { userId, username } = req.body;
+    if (!userId) return res.status(400).json({ error: 'No userId' });
+
+    let user = await db.get(`SELECT * FROM users WHERE id = ?`, [userId]);
+    if (!user) {
+        await db.run(`INSERT INTO users (id, username, is_banned) VALUES (?, ?, 0)`, [userId, username || '']);
+        user = { id: userId, username: username || '', is_banned: 0, last_spin: null };
+    }
+
+    if (user.is_banned === 1) return res.status(403).json({ error: 'Аккаунт заблокирован' });
+
+    if (user.last_spin) {
+        const lastSpinTime = new Date(user.last_spin).getTime();
+        const diffHours = (Date.now() - lastSpinTime) / (1000 * 60 * 60);
+        if (diffHours < 24) {
+            return res.status(400).json({ error: 'Кейс уже открывался сегодня' });
+        }
+    }
+
+    const prizes = await db.all(`SELECT * FROM prizes`);
+    if (!prizes || prizes.length === 0) {
+        return res.status(500).json({ error: 'В базе нет призов для кейса' });
+    }
+
+    let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
+    let randomWeight = Math.random() * totalWeight;
+    let currentWeight = 0;
+    let wonPrize = prizes[0];
+
+    for (const p of prizes) {
+        currentWeight += p.weight;
+        if (randomWeight <= currentWeight) {
+            wonPrize = p;
+            break;
+        }
+    }
+
+    const nowIso = new Date().toISOString();
+    await db.run(`UPDATE users SET last_spin = ? WHERE id = ?`, [nowIso, userId]);
+
+    const promo = (wonPrize.promo_prefix || 'PROMO') + '-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    
+    await db.run(
+        `INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)`,
+        [userId, wonPrize.name, wonPrize.icon, promo, nowIso]
+    );
+
+    res.json({
+        prize: { name: wonPrize.name, icon: wonPrize.icon, rarity: wonPrize.rarity },
+        promo: promo
+    });
+});
+
+// Инвентарь пользователя
+app.get('/api/inventory', async (req, res) => {
+    const { userId, username } = req.query;
+    if (!userId) return res.status(400).json({ error: 'No userId' });
+
+    try {
+        const items = await db.all(`SELECT * FROM inventory WHERE user_id = ? ORDER BY id DESC`, [userId]);
+        res.json({ items });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Список всех призов для админки
+app.get('/api/admin/prizes', async (req, res) => {
+    const { userId, username } = req.query;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        const prizes = await db.all(`SELECT * FROM prizes`);
+        res.json({ prizes });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Добавление приза
+app.post('/api/admin/add-prize', async (req, res) => {
+    const { userId, username, name, icon, rarity, weight, promo_prefix } = req.body;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        await db.run(
+            `INSERT INTO prizes (name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?)`,
+            [name, icon || '🎁', rarity || 'common', weight || 10, promo_prefix || 'CYBER']
+        );
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка при добавлении приза' });
+    }
+});
+
+// Удаление приза
+app.post('/api/admin/delete-prize', async (req, res) => {
+    const { userId, username, prizeId } = req.body;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        await db.run(`DELETE FROM prizes WHERE id = ?`, [prizeId]);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка при удалении' });
+    }
+});
+
+// Обновление веса (шанса) приза
+app.post('/api/admin/update-prize', async (req, res) => {
+    const { userId, username, prizeId, weight } = req.body;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        await db.run(`UPDATE prizes SET weight = ? WHERE id = ?`, [weight, prizeId]);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка обновления' });
+    }
+});
+
+// Статистика для админки
+app.get('/api/admin/stats', async (req, res) => {
+    const { userId, username } = req.query;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        const totalSpins = await db.get(`SELECT COUNT(*) as cnt FROM inventory`);
+        const totalUsers = await db.get(`SELECT COUNT(*) as cnt FROM users`);
+        const bannedUsers = await db.get(`SELECT COUNT(*) as cnt FROM users WHERE is_banned = 1`);
+
+        res.json({
+            totalSpins: totalSpins.cnt,
+            totalUsers: totalUsers.cnt,
+            bannedUsers: bannedUsers.cnt
+        });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Список забаненных
+app.get('/api/admin/banned-list', async (req, res) => {
+    const { userId, username } = req.query;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        const bannedUsers = await db.all(`SELECT id, username FROM users WHERE is_banned = 1`);
+        res.json({ bannedUsers });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Список всех пользователей
 app.get('/api/admin/users-list', async (req, res) => {
     const { userId, username } = req.query;
     const admin = await checkIsAdmin(userId, username);
@@ -116,7 +283,7 @@ app.get('/api/admin/users-list', async (req, res) => {
     }
 });
 
-// Блокировка / разблокировка пользователя
+// Блокировка / разблокировка
 app.post('/api/admin/ban', async (req, res) => {
     const { userId, username, targetUsername, banState } = req.body;
     const admin = await checkIsAdmin(userId, username);
@@ -135,7 +302,7 @@ app.post('/api/admin/ban', async (req, res) => {
     res.json({ success: true });
 });
 
-// Сброс таймера ежедневного кейса для пользователя
+// Сброс кулдауна таймера
 app.post('/api/admin/reset-timer', async (req, res) => {
     const { userId, username, targetUsername } = req.body;
     const admin = await checkIsAdmin(userId, username);
@@ -158,7 +325,52 @@ app.post('/api/admin/reset-timer', async (req, res) => {
     }
 });
 
-// Остальные ваши маршруты (призы, инвентарь, спин и т.д.) продолжают работать здесь...
+// Список администраторов
+app.get('/api/admin/list', async (req, res) => {
+    const { userId, username } = req.query;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin) return res.status(403).json({ error: 'Нет доступа' });
+
+    try {
+        const admins = await db.all(`SELECT username, is_super FROM admins`);
+        res.json({ admins });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Добавление администратора
+app.post('/api/admin/add-admin', async (req, res) => {
+    const { userId, username, newAdminUsername } = req.body;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin || !admin.is_super) return res.status(403).json({ error: 'Недостаточно прав' });
+
+    const cleanTarget = newAdminUsername.replace('@', '').trim();
+    try {
+        await db.run(
+            `INSERT INTO admins (user_id, username, is_admin, is_super) VALUES (?, ?, 1, 0)`,
+            ['external_' + cleanTarget, cleanTarget]
+        );
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка при добавлении администратора' });
+    }
+});
+
+// Удаление администратора
+app.post('/api/admin/remove-admin', async (req, res) => {
+    const { userId, username, targetAdminUsername } = req.body;
+    const admin = await checkIsAdmin(userId, username);
+    if (!admin || !admin.is_super) return res.status(403).json({ error: 'Недостаточно прав' });
+
+    const cleanTarget = targetAdminUsername.replace('@', '').trim();
+    try {
+        await db.run(`DELETE FROM admins WHERE LOWER(username) = LOWER(?)`, [cleanTarget]);
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка при удалении администратора' });
+    }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
