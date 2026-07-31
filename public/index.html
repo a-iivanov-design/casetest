@@ -248,9 +248,51 @@
             flex-direction: column;
             gap: 10px;
         }
+
+        /* ЭКРАН БЛОКИРОВКИ */
+        #banned-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(12, 12, 14, 0.98);
+            z-index: 99999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .banned-box {
+            background: var(--card-bg);
+            border: 2px solid var(--secondary);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(255, 23, 68, 0.4);
+            max-width: 320px;
+            width: 100%;
+        }
     </style>
 </head>
 <body>
+
+    <!-- ЭКРАН БЛОКИРОВКИ -->
+    <div id="banned-screen">
+        <div class="banned-box">
+            <div style="font-size: 54px; margin-bottom: 15px;">🚫</div>
+            <h2 style="color: var(--secondary); margin-top: 0; margin-bottom: 10px; font-size: 20px; text-transform: uppercase;">Доступ заблокирован</h2>
+            <p style="color: #aaa; font-size: 13px; line-height: 1.5; margin-bottom: 20px;">
+                Ваш аккаунт был заблокирован администрацией клуба. Вы больше не можете пользоваться сервисом.
+            </p>
+            <div style="background: var(--bg); padding: 8px 15px; border-radius: 6px; font-size: 12px; color: #777; display: inline-block; border: 1px solid #333;">
+                Статус: <span style="color: var(--secondary); font-weight: bold;">Заблокирован</span>
+            </div>
+        </div>
+    </div>
 
     <h1 id="app-title">КИБЕР КЕЙС</h1>
 
@@ -407,6 +449,9 @@
                 const data = await res.json();
 
                 if (data.isBanned) {
+                    // Активируем экран блокировки поверх всего
+                    document.getElementById('banned-screen').style.display = 'flex';
+
                     rollerWindow.style.display = 'none';
                     caseVisual.style.display = 'flex';
                     caseVisual.innerText = '🚫';
@@ -815,6 +860,12 @@
                     body: JSON.stringify({ userId, username })
                 });
                 serverData = await response.json();
+
+                if (response.status === 403 || serverData.isBanned || serverData.error === 'Аккаунт заблокирован') {
+                    isSpinning = false;
+                    document.getElementById('banned-screen').style.display = 'flex';
+                    return;
+                }
 
                 if (response.status !== 200) {
                     isSpinning = false;
