@@ -165,7 +165,7 @@ app.post('/api/spin', async (req, res) => {
     const prizesRes = await db.execute(`SELECT * FROM prizes`);
     const prizes = prizesRes.rows;
     if (prizes.length === 0) {
-      return res.status(400).json({ error: 'Призы не настроены администратором'5 });
+      return res.status(400).json({ error: 'Призы не настроены администратором' });
     }
 
     // Выбираем приз по весу (шансу)
