@@ -16,7 +16,7 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Инициализация структуры базы данных в облаке
+// Инициализация и миграция базы данных в облаке
 async function initDB() {
     await db.execute(`
         CREATE TABLE IF NOT EXISTS users (
@@ -26,6 +26,13 @@ async function initDB() {
             is_banned INTEGER DEFAULT 0
         )
     `);
+
+    // Миграция: если колонка is_banned отсутствует в старой таблице, добавляем её
+    try {
+        await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
+    } catch (e) {
+        // Колонка уже существует, игнорируем ошибку
+    }
 
     await db.execute(`
         CREATE TABLE IF NOT EXISTS admins (
@@ -101,7 +108,6 @@ async function checkIsAdmin(userId, username) {
 
 // Эндпоинты API
 
-// Статус пользователя и доступность кейса
 app.get('/api/status', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -145,7 +151,6 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-// Открытие кейса (спин)
 app.post('/api/spin', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -178,7 +183,6 @@ app.post('/api/spin', async (req, res) => {
             return res.status(500).json({ error: 'Призы не настроены' });
         }
 
-        // Рандом по весу (шансам)
         let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
         let randomWeight = Math.random() * totalWeight;
         let selectedPrize = prizes[0];
@@ -194,13 +198,11 @@ app.post('/api/spin', async (req, res) => {
         const promoCode = `${selectedPrize.promo_prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
         const nowIso = new Date().toISOString();
 
-        // Сохраняем в инвентарь
         await db.execute({
             sql: `INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)`,
             args: [uId, selectedPrize.name, selectedPrize.icon, promoCode, nowIso]
         });
 
-        // Обновляем время последнего спина
         if (user) {
             await db.execute({
                 sql: `UPDATE users SET last_spin = ?, username = ? WHERE id = ?`,
@@ -223,7 +225,6 @@ app.post('/api/spin', async (req, res) => {
     }
 });
 
-// Инвентарь пользователя
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -240,7 +241,6 @@ app.get('/api/inventory', async (req, res) => {
     }
 });
 
-// Проверка админских прав для фронтенда
 app.get('/api/admin/check', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -251,7 +251,6 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// Получение списка призов для админки
 app.get('/api/admin/prizes', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -265,7 +264,6 @@ app.get('/api/admin/prizes', async (req, res) => {
     }
 });
 
-// Обновление шанса (веса) приза
 app.post('/api/admin/update-prize', async (req, res) => {
     try {
         const { userId, username, prizeId, weight } = req.body;
@@ -283,7 +281,6 @@ app.post('/api/admin/update-prize', async (req, res) => {
     }
 });
 
-// Добавление нового приза
 app.post('/api/admin/add-prize', async (req, res) => {
     try {
         const { userId, username, name, icon, rarity, weight, promo_prefix } = req.body;
@@ -301,7 +298,6 @@ app.post('/api/admin/add-prize', async (req, res) => {
     }
 });
 
-// Удаление приза
 app.post('/api/admin/delete-prize', async (req, res) => {
     try {
         const { userId, username, prizeId } = req.body;
@@ -319,7 +315,7 @@ app.post('/api/admin/delete-prize', async (req, res) => {
     }
 });
 
-// Статистика
+// Статистика (поддерживаем разные ключи для фронтенда, чтобы не было undefined)
 app.get('/api/admin/stats', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -330,17 +326,24 @@ app.get('/api/admin/stats', async (req, res) => {
         const usersRes = await db.execute(`SELECT COUNT(*) as count FROM users`);
         const bannedRes = await db.execute(`SELECT COUNT(*) as count FROM users WHERE is_banned = 1`);
 
+        const totalSpins = spinsRes.rows[0].count;
+        const totalUsers = usersRes.rows[0].count;
+        const bannedUsers = bannedRes.rows[0].count;
+
         res.json({
-            totalSpins: spinsRes.rows[0].count,
-            totalUsers: usersRes.rows[0].count,
-            bannedUsers: bannedRes.rows[0].count
+            totalSpins,
+            totalUsers,
+            bannedUsers,
+            // Дублируем ключи под возможные варианты фронтенда
+            spinsCount: totalSpins,
+            usersCount: totalUsers,
+            bannedCount: bannedUsers
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
 });
 
-// Список забаненных
 app.get('/api/admin/banned-list', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -354,7 +357,6 @@ app.get('/api/admin/banned-list', async (req, res) => {
     }
 });
 
-// Список всех пользователей
 app.get('/api/admin/users-list', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -368,7 +370,6 @@ app.get('/api/admin/users-list', async (req, res) => {
     }
 });
 
-// Бан / Разбан
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const { userId, username, targetUsername, banState } = req.body;
@@ -388,7 +389,6 @@ app.post('/api/admin/ban', async (req, res) => {
     }
 });
 
-// Сброс таймера (возможность открыть кейс снова)
 app.post('/api/admin/reset-timer', async (req, res) => {
     try {
         const { userId, username, targetUsername } = req.body;
@@ -408,7 +408,6 @@ app.post('/api/admin/reset-timer', async (req, res) => {
     }
 });
 
-// Список админов
 app.get('/api/admin/list', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -422,7 +421,6 @@ app.get('/api/admin/list', async (req, res) => {
     }
 });
 
-// Добавить админа (только супер-админ)
 app.post('/api/admin/add-admin', async (req, res) => {
     try {
         const { userId, username, newAdminUsername } = req.body;
@@ -442,7 +440,6 @@ app.post('/api/admin/add-admin', async (req, res) => {
     }
 });
 
-// Удалить админа
 app.post('/api/admin/remove-admin', async (req, res) => {
     try {
         const { userId, username, targetAdminUsername } = req.body;
