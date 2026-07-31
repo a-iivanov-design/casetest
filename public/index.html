@@ -285,6 +285,7 @@
             <button class="tab-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')">Призы</button>
             <button class="tab-btn" id="subtab-stats" onclick="switchAdminSub('stats')">Статистика</button>
             <button class="tab-btn" id="subtab-ban" onclick="switchAdminSub('ban')">Баны</button>
+            <button class="tab-btn" id="subtab-users" onclick="switchAdminSub('users')">Юзеры</button>
             <button class="tab-btn" id="subtab-admins" onclick="switchAdminSub('admins')">Админы</button>
         </div>
 
@@ -326,6 +327,14 @@
 
             <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Список забаненных:</div>
             <div class="admin-list" id="banned-users-list">
+                <div style="text-align: center; color: #777;">Загрузка...</div>
+            </div>
+        </div>
+
+        <!-- Подвкладка: Все пользователи -->
+        <div id="admin-sub-users" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
+            <div style="font-size: 11px; margin-bottom: 5px; color: var(--primary);">Все пользователи бота:</div>
+            <div class="admin-list" id="all-users-list">
                 <div style="text-align: center; color: #777;">Загрузка...</div>
             </div>
         </div>
@@ -465,7 +474,7 @@
         }
 
         function switchAdminSub(sub) {
-            ['prizes', 'stats', 'ban', 'admins'].forEach(s => {
+            ['prizes', 'stats', 'ban', 'users', 'admins'].forEach(s => {
                 const btnEl = document.getElementById(`subtab-${s}`);
                 const secEl = document.getElementById(`admin-sub-${s}`);
                 if (btnEl) btnEl.classList.remove('active');
@@ -478,6 +487,7 @@
 
             if (sub === 'stats') loadStats();
             if (sub === 'ban') loadBannedUsers();
+            if (sub === 'users') loadAllUsers();
             if (sub === 'admins') loadAdminsList();
         }
 
@@ -572,6 +582,32 @@
                     card.innerHTML = `
                         <div>🚫 <b>@${u.username}</b></div>
                         <button style="background: var(--primary); color: var(--bg);" onclick="quickUnban('${u.username}')">Разбанить</button>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
+            }
+        }
+
+        async function loadAllUsers() {
+            const listEl = document.getElementById('all-users-list');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
+                const data = await res.json();
+                if (!data.users || data.users.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #777;">Нет пользователей</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.users.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    let statusBadge = u.is_banned ? '<span style="color:var(--secondary);">[Бан]</span>' : '<span style="color:var(--primary);">[Активен]</span>';
+                    card.innerHTML = `
+                        <div><b>@${u.username || 'id: ' + u.id}</b> ${statusBadge}</div>
+                        <button onclick="document.getElementById('ban-username').value='${u.username || u.id}'; switchAdminSub('ban');">Управлять</button>
                     `;
                     listEl.appendChild(card);
                 });
@@ -784,12 +820,12 @@
                 }
             } catch (e) {
                 isSpinning = false;
-                    btn.disabled = false;
-                    btn.innerText = 'Открыть кейс';
-                    windowEl.style.display = 'none';
-                    visual.style.display = 'flex';
-                    msg.style.color = 'var(--secondary)';
-                    msg.innerText = 'Ошибка соединения';
+                btn.disabled = false;
+                btn.innerText = 'Открыть кейс';
+                windowEl.style.display = 'none';
+                visual.style.display = 'flex';
+                msg.style.color = 'var(--secondary)';
+                msg.innerText = 'Ошибка соединения';
                 return;
             }
 
