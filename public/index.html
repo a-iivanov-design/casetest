@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Case</title>
+    <title>casetest</title>
     <style>
         body {
             background-color: #0f0f13;
@@ -15,14 +15,42 @@
             flex-direction: column;
             align-items: center;
         }
-        h1 {
+        h2 {
             color: #00ffcc;
             text-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+            text-align: center;
         }
         .container {
-            max-width: 600px;
+            max-width: 400px;
             width: 100%;
             text-align: center;
+        }
+        .btn {
+            background: linear-gradient(45deg, #ff0055, #ff3333);
+            border: none;
+            color: white;
+            padding: 12px 20px;
+            margin: 8px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            box-shadow: 0 0 10px rgba(255, 0, 85, 0.4);
+        }
+        .btn-green {
+            background: linear-gradient(45deg, #00cc66, #00ffcc);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+            color: #000;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            background: #181820;
+            border: 1px solid #333;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
         }
         /* Экран блокировки */
         #banned-screen {
@@ -46,7 +74,7 @@
             padding: 30px;
             border-radius: 12px;
             box-shadow: 0 0 20px rgba(255, 51, 51, 0.3);
-            max-width: 350px;
+            max-width: 320px;
             width: 100%;
         }
     </style>
@@ -59,44 +87,68 @@
             <div style="font-size: 54px; margin-bottom: 15px;">🚫</div>
             <h2 style="color: #ff3333; margin-top: 0; margin-bottom: 10px;">Доступ заблокирован</h2>
             <p style="color: #aaa; font-size: 14px; line-height: 1.5; margin-bottom: 20px;">
-                Ваш аккаунт был заблокирован администрацией. Вы больше не можете открывать кейсы и пользоваться сервисом.
+                Ваш аккаунт был заблокирован администрацией. Вы больше не можете пользоваться сервисом.
             </p>
             <div style="background: #111; padding: 8px 15px; border-radius: 6px; font-size: 13px; color: #777; display: inline-block;">
-                Статус: <span style="color: #ff3333; font-weight: bold;">В банне</span>
+                Статус: <span style="color: #ff3333; font-weight: bold;">Заблокирован</span>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <h1>CYBER CASE</h1>
+        <h2>CYBER CASE</h2>
+        
         <div id="app">
-            <p>Загрузка данных...</p>
+            <!-- Здесь твой основной интерфейс управления/кейсов -->
+            <p id="status-text">Загрузка...</p>
+            
+            <div style="margin-top: 20px;">
+                <button class="btn" onclick="openCase()">Открыть кейс</button>
+            </div>
         </div>
     </div>
 
     <script>
-        // Получаем данные пользователя (например, из Telegram WebApp или дефолтные для теста)
         const urlParams = new URLSearchParams(window.location.search);
         const userId = urlParams.get('userId') || 'test_user_1';
         const username = urlParams.get('username') || 'mironova92';
 
-        function checkUserStatus() {
+        function checkStatus() {
             fetch(`/api/status?userId=${userId}&username=${username}`)
                 .then(res => res.json())
                 .then(data => {
                     if (data.isBanned) {
+                        // Показываем экран блокировки
                         document.getElementById('banned-screen').style.display = 'flex';
-                        document.getElementById('app').innerHTML = '<p style="color: #ff3333;">Аккаунт заблокирован.</p>';
                     } else {
-                        document.getElementById('app').innerHTML = '<p style="color: #00ffcc;">Добро пожаловать! Можете крутить кейс.</p>';
+                        document.getElementById('status-text').innerText = data.canSpin ? 
+                            'Кейс доступен для открытия!' : 
+                            `Таймер активен (осталось часов: ${data.hoursLeft || 'несколько'})`;
                     }
                 })
-                .catch(err => {
-                    console.error('Ошибка проверки статуса:', err);
-                });
+                .catch(err => console.error('Ошибка:', err));
         }
 
-        checkUserStatus();
+        function openCase() {
+            fetch(`/api/spin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.isBanned || data.error === 'Аккаунт заблокирован') {
+                    document.getElementById('banned-screen').style.display = 'flex';
+                } else if (data.error) {
+                    alert(data.error);
+                } else {
+                    alert(`Вы выиграли: ${data.prize.name} (${data.promo})`);
+                    checkStatus();
+                }
+            });
+        }
+
+        checkStatus();
     </script>
 </body>
 </html>
