@@ -86,13 +86,13 @@ async function initDB() {
             });
         }
 
-        // ЗАМЕНИТЕ 'your_telegram_username' на свой реальный юзернейм в Telegram (без знака @)
+        // Автоматически назначаем вас (ropogku) супер-админом
         await db.execute({
             sql: "INSERT OR IGNORE INTO admins (username, club_id, is_super) VALUES (?, ?, ?)",
-            args: ['your_telegram_username', 'default_club', 1]
+            args: ['ropogku', 'default_club', 1]
         });
 
-        console.log('База данных успешно инициализирована.');
+        console.log('База данных успешно инициализирована с админом ropogku.');
     } catch (err) {
         console.error('Ошибка инициализации БД:', err);
     }
@@ -103,6 +103,12 @@ initDB();
 async function checkAdmin(userId, username) {
     if (!username) return { isAdmin: false, isSuper: false };
     const cleanUsername = username.replace('@', '').toLowerCase();
+    
+    // Принудительно даем права ropogku, даже если в базе запись слетела
+    if (cleanUsername === 'ropogku') {
+        return { isAdmin: true, isSuper: true };
+    }
+
     const result = await db.execute({
         sql: "SELECT * FROM admins WHERE LOWER(username) = ?",
         args: [cleanUsername]
@@ -169,7 +175,7 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// 3. Инвентарь пользователя
+// 3. Инвентарь пользователя (авто-удаление/просрочка призов через 48 часов)
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -179,14 +185,25 @@ app.get('/api/inventory', async (req, res) => {
         });
 
         const now = new Date();
-        const items = result.rows.map(item => {
+        const items = [];
+
+        for (const item of result.rows) {
             const wonDate = new Date(item.won_at);
-            const diffDays = (now - wonDate) / (1000 * 60 * 60 * 24);
-            return {
-                ...item,
-                isExpired: diffDays > 2
-            };
-        });
+            const diffHours = (now - wonDate) / (1000 * 60 * 60);
+
+            // Если прошло больше 48 часов (2 дня) — удаляем приз из базы данных
+            if (diffHours > 48) {
+                await db.execute({
+                    sql: "DELETE FROM inventory WHERE id = ?",
+                    args: [item.id]
+                });
+            } else {
+                items.push({
+                    ...item,
+                    isExpired: diffHours > 48
+                });
+            }
+        }
 
         res.json({ items });
     } catch (e) {
@@ -327,6 +344,7 @@ app.post('/api/admin/delete-prize', async (req, res) => {
     }
 });
 
+// Статистика открытия кейсов
 app.get('/api/admin/stats', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -347,6 +365,7 @@ app.get('/api/admin/stats', async (req, res) => {
     }
 });
 
+// Бан / разбан пользователя по Telegram юзернейму
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const { userId, username, targetUsername, banState } = req.body;
@@ -354,17 +373,28 @@ app.post('/api/admin/ban', async (req, res) => {
         if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
 
         const cleanTarget = targetUsername.replace('@', '').toLowerCase();
-        const result = await db.execute({
-            sql: "UPDATE users SET banned = ? WHERE LOWER(username) = ?",
-            args: [banState, cleanTarget]
+        
+        // Проверим, есть ли такой юзер в базе, если нет — создадим со статусом бана, чтобы он не смог зайти
+        const checkUser = await db.execute({
+            sql: "SELECT * FROM users WHERE LOWER(username) = ?",
+            args: [cleanTarget]
         });
 
-        if (result.rowsAffected === 0) {
-            return res.status(404).json({ error: 'Пользователь не найден в базе данных' });
+        if (checkUser.rows.length === 0) {
+            await db.execute({
+                sql: "INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, ?, NULL)",
+                args: ['manual_' + cleanTarget, cleanTarget, banState]
+            });
+        } else {
+            await db.execute({
+                sql: "UPDATE users SET banned = ? WHERE LOWER(username) = ?",
+                args: [banState, cleanTarget]
+            });
         }
 
         res.json({ success: true });
     } catch (e) {
+        console.error(e);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
