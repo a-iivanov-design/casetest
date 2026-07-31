@@ -149,7 +149,6 @@ app.get('/api/status', async (req, res) => {
 app.post('/api/spin', async (req, res) => {
     try {
         const { userId, username } = req.query;
-        // Поддерживаем передачу параметров как в query, так и в body
         const uId = userId || req.body.userId;
         const uName = username || req.body.username;
 
@@ -176,7 +175,7 @@ app.post('/api/spin', async (req, res) => {
         const prizes = prizesRes.rows;
 
         if (prizes.length === 0) {
-            return res.status(500).json({ error: 'Призы не настроены'5 });
+            return res.status(500).json({ error: 'Призы не настроены' });
         }
 
         // Рандом по весу (шансам)
