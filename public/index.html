@@ -252,7 +252,7 @@
             <button class="main-btn" style="font-size: 11px; padding: 6px;" onclick="addPrize()">Добавить приз</button>
         </div>
 
-        <!-- Секция добавления админов по юзернейму -->
+        <!-- Секция добавления админов -->
         <div id="super-admin-section" style="display:none; width: 310px; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
             <div style="font-size: 12px; margin-bottom: 5px; color: #ff1744;">Добавить админа по юзернейму:</div>
             <div class="add-prize-form">
@@ -337,14 +337,23 @@
                 data.items.forEach(item => {
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
+                    
+                    let promoBlock = `<div style="color: #ff1744; font-weight: bold;">${item.promo}</div>`;
+                    let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at + ' UTC').toLocaleString()}</span>`;
+
+                    if (item.isExpired) {
+                        promoBlock = `<div style="color: #616161; font-weight: bold; text-decoration: line-through;">Срок истек</div>`;
+                        statusText = `<span style="font-size:10px; color:#ff1744;">Просрочено (> 2 дней)</span>`;
+                    }
+
                     card.innerHTML = `
-                        <div><b>${item.icon} ${item.prize_name}</b><br><span style="font-size:10px; color:#888;">${new Date(item.won_at).toLocaleString()}</span></div>
-                        <div style="color: #ff1744; font-weight: bold;">${item.promo}</div>
+                        <div><b>${item.icon} ${item.prize_name}</b><br>${statusText}</div>
+                        ${promoBlock}
                     `;
                     listEl.appendChild(card);
                 });
             } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка</div>';
+                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
             }
         }
 
@@ -422,7 +431,7 @@
             });
             const data = await res.json();
             if (data.success) {
-                alert('Администратор успешно назначен по юзернейму!');
+                alert('Администратор успешно назначен!');
                 document.getElementById('new-admin-username').value = '';
                 document.getElementById('new-club-id').value = '';
             } else {
@@ -472,9 +481,9 @@
                 btn.innerText = 'Открыть кейс';
                 windowEl.style.display = 'none';
                 visual.style.display = 'flex';
-                    msg.style.color = '#ff1744';
-                    msg.innerText = 'Ошибка соединения';
-                    return;
+                msg.style.color = '#ff1744';
+                msg.innerText = 'Ошибка соединения';
+                return;
             }
 
             const winningPrize = serverData.prize;
@@ -504,7 +513,7 @@
                 isSpinning = false;
                 btn.innerText = 'Ещё раз (без лимита)';
                 msg.style.color = '#00e676';
-                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span>`;
+                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Действует 48 часов!</span>`;
             }, 4100);
         }
     </script>
