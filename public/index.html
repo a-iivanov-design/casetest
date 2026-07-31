@@ -366,15 +366,23 @@
         async function checkUserStatus() {
             const btn = document.getElementById('action-button');
             const msg = document.getElementById('result-message');
+            const caseVisual = document.getElementById('case-visual');
+            const rollerWindow = document.getElementById('roller-window');
+
             try {
                 const res = await fetch(`/api/status?userId=${userId}&username=${username}`);
                 const data = await res.json();
 
                 if (data.isBanned) {
+                    rollerWindow.style.display = 'none';
+                    caseVisual.style.display = 'flex';
+                    caseVisual.innerText = '🚫';
+                    
                     btn.disabled = true;
-                    btn.innerText = 'Заблокирован';
+                    btn.innerText = 'Доступ заблокирован';
+                    
                     msg.style.color = 'var(--secondary)';
-                    msg.innerText = 'Вы заблокированы администратором!';
+                    msg.innerHTML = '<b>Внимание!</b><br>Ваш аккаунт заблокирован администратором клуба.';
                     return;
                 }
 
