@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Раздаем статику из папки public (туда нужно положить ваш index.html)
+// Раздаем статику из папки public
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Подключение к базе данных Turso
@@ -16,7 +16,7 @@ const db = createClient({
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Инициализация таблиц при запуске сервера
+// Инициализация таблиц и автомиграции при запуске сервера
 async function initDB() {
     try {
         await db.execute(`
@@ -27,6 +27,13 @@ async function initDB() {
                 last_spin DATETIME
             )
         `);
+
+        // Авто-добавление колонки, если таблица была создана ранее без неё
+        try {
+            await db.execute(`ALTER TABLE users ADD COLUMN last_spin DATETIME`);
+        } catch (e) {
+            // Колонка уже существует, игнорируем ошибку
+        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS prizes (
@@ -58,6 +65,15 @@ async function initDB() {
             )
         `);
 
+        // Авто-добавление колонки club_id, если таблица admins уже была
+        try {
+            await db.execute(`ALTER TABLE admins ADD COLUMN club_id TEXT`);
+        } catch (e) {}
+
+        try {
+            await db.execute(`ALTER TABLE admins ADD COLUMN is_super INTEGER DEFAULT 0`);
+        } catch (e) {}
+
         // Проверяем, есть ли призы, если нет — создаем дефолтные
         const prizesCount = await db.execute("SELECT COUNT(*) as count FROM prizes");
         if (prizesCount.rows[0].count === 0) {
@@ -79,7 +95,7 @@ async function initDB() {
             });
         }
 
-        // Добавим супер-админа по умолчанию (измените юзернейм на свой при необходимости)
+        // Замените 'your_telegram_username' на ваш реальный ник в ТГ (без @), чтобы получить права супер-админа
         await db.execute({
             sql: "INSERT OR IGNORE INTO admins (username, club_id, is_super) VALUES (?, ?, ?)",
             args: ['ropogku', 'default_club', 1]
@@ -109,7 +125,7 @@ async function checkAdmin(userId, username) {
     return { isAdmin: false, isSuper: false };
 }
 
-// 1. Проверка статуса пользователя (доступность кейса и бан)
+// 1. Проверка статуса пользователя
 app.get('/api/status', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -162,7 +178,7 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// 3. Получение инвентаря пользователя
+// 3. Получение инвентаря
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -192,7 +208,6 @@ app.post('/api/spin', async (req, res) => {
     try {
         const { userId, username } = req.body;
 
-        // Проверяем бан и кулдаун
         let userRes = await db.execute({
             sql: "SELECT * FROM users WHERE user_id = ?",
             args: [userId]
@@ -210,7 +225,6 @@ app.post('/api/spin', async (req, res) => {
             }
         }
 
-        // Получаем все призы для рулетки
         const prizesRes = await db.execute("SELECT * FROM prizes");
         const prizes = prizesRes.rows;
 
@@ -218,7 +232,6 @@ app.post('/api/spin', async (req, res) => {
             return res.status(500).json({ error: 'Призы не настроены администратором' });
         }
 
-        // Рандом на основе веса (шансов)
         let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
         let randomWeight = Math.random() * totalWeight;
         let selectedPrize = prizes[0];
@@ -231,20 +244,19 @@ app.post('/api/spin', async (req, res) => {
             randomWeight -= p.weight;
         }
 
-        // Генерируем уникальный промокод
         const promoCode = `${selectedPrize.promo_prefix || 'CYBER'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         const nowIso = new Date().toISOString();
 
-        // Сохраняем в инвентарь
         await db.execute({
             sql: "INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)",
             args: [userId, selectedPrize.name, selectedPrize.icon, promoCode, nowIso]
         });
 
-        // Обновляем время последнего открытия у юзера
+        // Безопасное обновление юзера (если нет строки — создадим, если есть — обновим)
         await db.execute({
-            sql: "INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, 0, ?) ON CONFLICT(user_id) DO UPDATE SET last_spin = ?",
-            args: [userId, username || '', nowIso, nowIso]
+            sql: `INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, 0, ?) 
+                  ON CONFLICT(user_id) DO UPDATE SET last_spin = ?, username = ?`,
+            args: [userId, username || '', nowIso, nowIso, username || '']
         });
 
         res.json({
@@ -256,7 +268,7 @@ app.post('/api/spin', async (req, res) => {
             promo: promoCode
         });
     } catch (e) {
-        console.error(e);
+        console.error('Ошибка в /api/spin:', e);
         res.status(500).json({ error: 'Ошибка при открытии кейса' });
     }
 });
@@ -357,7 +369,7 @@ app.post('/api/admin/ban', async (req, res) => {
         });
 
         if (result.rowsAffected === 0) {
-            return res.status(404).json({ error: 'Пользователь с таким юзернеймом не найден в базе' });
+            return res.status(404).json({ error: 'Пользователь не найден в базе данных' });
         }
 
         res.json({ success: true });
