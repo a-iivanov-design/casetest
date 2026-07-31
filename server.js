@@ -287,24 +287,63 @@ app.post('/api/admin/ban', async (req, res) => {
     } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
+// Получить список активных администраторов
+app.get('/api/admin/list', async (req, res) => {
+    try {
+        const { userId, username } = req.query;
+        const adminCheck = await checkAdmin(userId, username);
+        if (!adminCheck.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
+
+        const result = await db.execute("SELECT username, is_super FROM admins");
+        res.json({ admins: result.rows });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// Добавить админа по юзернейму
 app.post('/api/admin/add-admin', async (req, res) => {
     try {
         const { userId, username, newAdminUsername } = req.body;
-        if (!(await checkAdmin(userId, username)).isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
-        await db.execute({ sql: "INSERT INTO admins (username, is_super) VALUES (?, 0) ON CONFLICT(username) DO UPDATE SET is_super = 0", args: [newAdminUsername.replace('@', '').toLowerCase()] });
+        const adminCheck = await checkAdmin(userId, username);
+        if (!adminCheck.isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
+
+        if (!newAdminUsername) {
+            return res.status(400).json({ error: 'Укажите юзернейм администратора' });
+        }
+
+        const cleanNewAdmin = newAdminUsername.replace('@', '').trim().toLowerCase();
+        
+        await db.execute({ 
+            sql: "INSERT INTO admins (username, is_super) VALUES (?, 0) ON CONFLICT(username) DO UPDATE SET is_super = 0", 
+            args: [cleanNewAdmin] 
+        });
+
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
+    } catch (e) { 
+        console.error(e);
+        res.status(500).json({ error: 'Ошибка сервера' }); 
+    }
 });
 
+// Разжаловать админа
 app.post('/api/admin/remove-admin', async (req, res) => {
     try {
         const { userId, username, targetAdminUsername } = req.body;
-        if (!(await checkAdmin(userId, username)).isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
-        const cleanTarget = targetAdminUsername.replace('@', '').toLowerCase();
-        if (cleanTarget === 'ropogku') return res.status(400).json({ error: 'Нельзя разжаловать главного админа!' });
+        const adminCheck = await checkAdmin(userId, username);
+        if (!adminCheck.isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
+
+        const cleanTarget = targetAdminUsername.replace('@', '').trim().toLowerCase();
+        if (cleanTarget === 'ropogku') {
+            return res.status(400).json({ error: 'Нельзя разжаловать главного админа!' });
+        }
+
         await db.execute({ sql: "DELETE FROM admins WHERE LOWER(username) = ?", args: [cleanTarget] });
         res.json({ success: true });
-    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
+    } catch (e) { 
+        console.error(e);
+        res.status(500).json({ error: 'Ошибка сервера' }); 
+    }
 });
 
 const PORT = process.env.PORT || 3000;
