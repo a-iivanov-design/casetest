@@ -7,16 +7,13 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Раздаем статику из папки public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к базе данных Turso
 const db = createClient({
     url: process.env.TURSO_DATABASE_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Инициализация базы данных и пересоздание таблиц
 async function initDB() {
     try {
         await db.execute(`DROP TABLE IF EXISTS inventory`);
@@ -55,7 +52,6 @@ async function initDB() {
             )
         `);
 
-        // Таблица администраторов (без club_id)
         await db.execute(`
             CREATE TABLE IF NOT EXISTS admins (
                 username TEXT PRIMARY KEY,
@@ -63,7 +59,6 @@ async function initDB() {
             )
         `);
 
-        // Добавляем дефолтные призы
         const prizesCount = await db.execute("SELECT COUNT(*) as count FROM prizes");
         if (prizesCount.rows[0].count === 0) {
             await db.execute({
@@ -84,7 +79,6 @@ async function initDB() {
             });
         }
 
-        // Автоматически назначаем ropogku супер-админом
         await db.execute({
             sql: "INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, ?)",
             args: ['ropogku', 1]
@@ -97,12 +91,10 @@ async function initDB() {
 }
 initDB();
 
-// Проверка прав администратора
 async function checkAdmin(userId, username) {
     if (!username) return { isAdmin: false, isSuper: false };
     const cleanUsername = username.replace('@', '').toLowerCase();
     
-    // Главный супер-админ всегда имеет полный доступ
     if (cleanUsername === 'ropogku') {
         return { isAdmin: true, isSuper: true };
     }
@@ -120,7 +112,6 @@ async function checkAdmin(userId, username) {
     return { isAdmin: false, isSuper: false };
 }
 
-// 1. Статус пользователя (доступность кейса)
 app.get('/api/status', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -138,42 +129,29 @@ app.get('/api/status', async (req, res) => {
         }
 
         const user = userRes.rows[0];
-        if (user.banned === 1) {
-            return res.json({ isBanned: true });
-        }
+        if (user.banned === 1) return res.json({ isBanned: true });
+        if (!user.last_spin) return res.json({ isBanned: false, canSpin: true });
 
-        if (!user.last_spin) {
-            return res.json({ isBanned: false, canSpin: true });
-        }
-
-        const lastSpinDate = new Date(user.last_spin);
-        const now = new Date();
-        const diffHours = (now - lastSpinDate) / (1000 * 60 * 60);
-
+        const diffHours = (new Date() - new Date(user.last_spin)) / (1000 * 60 * 60);
         if (diffHours < 24) {
-            const hoursLeft = Math.ceil(24 - diffHours);
-            return res.json({ isBanned: false, canSpin: false, hoursLeft });
+            return res.json({ isBanned: false, canSpin: false, hoursLeft: Math.ceil(24 - diffHours) });
         }
 
         res.json({ isBanned: false, canSpin: true });
     } catch (e) {
-        console.error(e);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// 2. Проверка админки
 app.get('/api/admin/check', async (req, res) => {
     try {
         const { userId, username } = req.query;
-        const adminInfo = await checkAdmin(userId, username);
-        res.json(adminInfo);
+        res.json(await checkAdmin(userId, username));
     } catch (e) {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// 3. Инвентарь пользователя (автоудаление призов через 48 часов)
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -186,67 +164,41 @@ app.get('/api/inventory', async (req, res) => {
         const items = [];
 
         for (const item of result.rows) {
-            const wonDate = new Date(item.won_at);
-            const diffHours = (now - wonDate) / (1000 * 60 * 60);
-
-            if (diffHours > 48) {
-                await db.execute({
-                    sql: "DELETE FROM inventory WHERE id = ?",
-                    args: [item.id]
-                });
+            if ((now - new Date(item.won_at)) / (1000 * 60 * 60) > 48) {
+                await db.execute({ sql: "DELETE FROM inventory WHERE id = ?", args: [item.id] });
             } else {
-                items.push({
-                    ...item,
-                    isExpired: false
-                });
+                items.push({ ...item, isExpired: false });
             }
         }
-
         res.json({ items });
     } catch (e) {
-        console.error(e);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// 4. Открытие кейса
 app.post('/api/spin', async (req, res) => {
     try {
         const { userId, username } = req.body;
-
-        let userRes = await db.execute({
-            sql: "SELECT * FROM users WHERE user_id = ?",
-            args: [userId]
-        });
+        let userRes = await db.execute({ sql: "SELECT * FROM users WHERE user_id = ?", args: [userId] });
 
         if (userRes.rows.length > 0 && userRes.rows[0].banned === 1) {
             return res.status(403).json({ error: 'Вы заблокированы!' });
         }
-
         if (userRes.rows.length > 0 && userRes.rows[0].last_spin) {
-            const lastSpin = new Date(userRes.rows[0].last_spin);
-            const diffHours = (new Date() - lastSpin) / (1000 * 60 * 60);
-            if (diffHours < 24) {
+            if ((new Date() - new Date(userRes.rows[0].last_spin)) / (1000 * 60 * 60) < 24) {
                 return res.status(400).json({ error: 'Кейс можно открывать раз в 24 часа!' });
             }
         }
 
-        const prizesRes = await db.execute("SELECT * FROM prizes");
-        const prizes = prizesRes.rows;
-
-        if (prizes.length === 0) {
-            return res.status(500).json({ error: 'Призы не настроены администратором' });
-        }
+        const prizes = (await db.execute("SELECT * FROM prizes")).rows;
+        if (prizes.length === 0) return res.status(500).json({ error: 'Призы не настроены' });
 
         let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
         let randomWeight = Math.random() * totalWeight;
         let selectedPrize = prizes[0];
 
         for (let p of prizes) {
-            if (randomWeight < p.weight) {
-                selectedPrize = p;
-                break;
-            }
+            if (randomWeight < p.weight) { selectedPrize = p; break; }
             randomWeight -= p.weight;
         }
 
@@ -264,183 +216,96 @@ app.post('/api/spin', async (req, res) => {
             args: [userId, username || '', nowIso, nowIso, username || '']
         });
 
-        res.json({
-            prize: {
-                name: selectedPrize.name,
-                icon: selectedPrize.icon,
-                rarity: selectedPrize.rarity
-            },
-            promo: promoCode
-        });
-    } catch (e) {
-        console.error('Ошибка в /api/spin:', e);
-        res.status(500).json({ error: 'Ошибка: ' + (e.message || e) });
-    }
-});
-
-// --- АДМИНСКИЕ МАРШРУТЫ ---
-
-app.get('/api/admin/prizes', async (req, res) => {
-    try {
-        const { userId, username } = req.query;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
-        const result = await db.execute("SELECT * FROM prizes");
-        res.json({ prizes: result.rows });
+        res.json({ prize: { name: selectedPrize.name, icon: selectedPrize.icon, rarity: selectedPrize.rarity }, promo: promoCode });
     } catch (e) {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
+});
+
+app.get('/api/admin/prizes', async (req, res) => {
+    try {
+        const admin = await checkAdmin(req.query.userId, req.query.username);
+        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
+        res.json({ prizes: (await db.execute("SELECT * FROM prizes")).rows });
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
 app.post('/api/admin/update-prize', async (req, res) => {
     try {
         const { userId, username, prizeId, weight } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
-        await db.execute({
-            sql: "UPDATE prizes SET weight = ? WHERE id = ?",
-            args: [weight, prizeId]
-        });
+        if (!(await checkAdmin(userId, username)).isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
+        await db.execute({ sql: "UPDATE prizes SET weight = ? WHERE id = ?", args: [weight, prizeId] });
         res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
 app.post('/api/admin/add-prize', async (req, res) => {
     try {
         const { userId, username, name, icon, rarity, weight, promo_prefix } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
+        if (!(await checkAdmin(userId, username)).isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
         await db.execute({
             sql: "INSERT INTO prizes (name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?)",
             args: [name, icon || '🎁', rarity || 'common', weight || 10, promo_prefix || 'PROMO']
         });
         res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
 app.post('/api/admin/delete-prize', async (req, res) => {
     try {
         const { userId, username, prizeId } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
-        await db.execute({
-            sql: "DELETE FROM prizes WHERE id = ?",
-            args: [prizeId]
-        });
+        if (!(await checkAdmin(userId, username)).isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
+        await db.execute({ sql: "DELETE FROM prizes WHERE id = ?", args: [prizeId] });
         res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
-// Статистика открытия кейсов и пользователей
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const { userId, username } = req.query;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
-        const totalSpinsRes = await db.execute("SELECT COUNT(*) as count FROM inventory");
-        const totalUsersRes = await db.execute("SELECT COUNT(*) as count FROM users");
-        const bannedUsersRes = await db.execute("SELECT COUNT(*) as count FROM users WHERE banned = 1");
-
+        if (!(await checkAdmin(req.query.userId, req.query.username)).isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
         res.json({
-            totalSpins: totalSpinsRes.rows[0].count,
-            totalUsers: totalUsersRes.rows[0].count,
-            bannedUsers: bannedUsersRes.rows[0].count
+            totalSpins: (await db.execute("SELECT COUNT(*) as count FROM inventory")).rows[0].count,
+            totalUsers: (await db.execute("SELECT COUNT(*) as count FROM users")).rows[0].count,
+            bannedUsers: (await db.execute("SELECT COUNT(*) as count FROM users WHERE banned = 1")).rows[0].count
         });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
-// Бан / разбан пользователя по Telegram юзернейму
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const { userId, username, targetUsername, banState } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
-
+        if (!(await checkAdmin(userId, username)).isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
         const cleanTarget = targetUsername.replace('@', '').toLowerCase();
         
-        const checkUser = await db.execute({
-            sql: "SELECT * FROM users WHERE LOWER(username) = ?",
-            args: [cleanTarget]
-        });
-
-        if (checkUser.rows.length === 0) {
-            await db.execute({
-                sql: "INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, ?, NULL)",
-                args: ['manual_' + cleanTarget, cleanTarget, banState]
-            });
+        const check = await db.execute({ sql: "SELECT * FROM users WHERE LOWER(username) = ?", args: [cleanTarget] });
+        if (check.rows.length === 0) {
+            await db.execute({ sql: "INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, ?, NULL)", args: ['manual_' + cleanTarget, cleanTarget, banState] });
         } else {
-            await db.execute({
-                sql: "UPDATE users SET banned = ? WHERE LOWER(username) = ?",
-                args: [banState, cleanTarget]
-            });
+            await db.execute({ sql: "UPDATE users SET banned = ? WHERE LOWER(username) = ?", args: [banState, cleanTarget] });
         }
-
         res.json({ success: true });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
-// Назначение нового администратора
 app.post('/api/admin/add-admin', async (req, res) => {
     try {
         const { userId, username, newAdminUsername } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isSuper) return res.status(403).json({ error: 'Недостаточно прав (нужен супер-админ)' });
-
-        const cleanNewAdmin = newAdminUsername.replace('@', '').toLowerCase();
-        await db.execute({
-            sql: "INSERT INTO admins (username, is_super) VALUES (?, 0) ON CONFLICT(username) DO UPDATE SET is_super = 0",
-            args: [cleanNewAdmin]
-        });
-
+        if (!(await checkAdmin(userId, username)).isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
+        await db.execute({ sql: "INSERT INTO admins (username, is_super) VALUES (?, 0) ON CONFLICT(username) DO UPDATE SET is_super = 0", args: [newAdminUsername.replace('@', '').toLowerCase()] });
         res.json({ success: true });
-    } catch (e) {
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
-// Разжалование администратора (удаление из списка админов)
 app.post('/api/admin/remove-admin', async (req, res) => {
     try {
         const { userId, username, targetAdminUsername } = req.body;
-        const admin = await checkAdmin(userId, username);
-        if (!admin.isSuper) return res.status(403).json({ error: 'Недостаточно прав (нужен супер-админ)' });
-
+        if (!(await checkAdmin(userId, username)).isSuper) return res.status(403).json({ error: 'Нужен супер-админ' });
         const cleanTarget = targetAdminUsername.replace('@', '').toLowerCase();
-        
-        // Главного админа ropogku разжаловать нельзя
-        if (cleanTarget === 'ropogku') {
-            return res.status(400).json({ error: 'Нельзя разжаловать главного администратора!' });
-        }
-
-        await db.execute({
-            sql: "DELETE FROM admins WHERE LOWER(username) = ?",
-            args: [cleanTarget]
-        });
-
+        if (cleanTarget === 'ropogku') return res.status(400).json({ error: 'Нельзя разжаловать главного админа!' });
+        await db.execute({ sql: "DELETE FROM admins WHERE LOWER(username) = ?", args: [cleanTarget] });
         res.json({ success: true });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: 'Ошибка сервера' });
-    }
+    } catch (e) { res.status(500).json({ error: 'Ошибка сервера' }); }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`Сервер запущен на порту ${PORT}`);
-});
+app.listen(PORT, () => { console.log(`Сервер запущен на порту ${PORT}`); });
