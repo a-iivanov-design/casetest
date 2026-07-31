@@ -150,7 +150,7 @@
 
         .inventory-list, .admin-list {
             width: 310px;
-            max-height: 280px;
+            max-height: 220px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
@@ -191,7 +191,7 @@
 
         .add-prize-form {
             width: 310px;
-            margin-top: 10px;
+            margin-top: 5px;
             display: flex;
             flex-direction: column;
             gap: 6px;
@@ -236,20 +236,30 @@
         </div>
     </div>
 
-    <!-- Вкладка Админки (скрыта по умолчанию) -->
+    <!-- Вкладка Админки -->
     <div id="section-admin" class="view-section">
-        <div style="font-size: 12px; margin-bottom: 5px; color: #aaa;">Управление шансами (вес приза):</div>
+        <div style="font-size: 12px; margin-bottom: 5px; color: #aaa;">Управление призами:</div>
         <div class="admin-list" id="admin-prizes-list">
-            <div style="text-align: center; color: #777;">Загрузка призов...</div>
+            <div style="text-align: center; color: #777;">Загрузка...</div>
         </div>
         
         <div class="add-prize-form">
-            <input type="text" id="new-name" placeholder="Название (например: 5 часов)">
-            <input type="text" id="new-icon" placeholder="Иконка (например: 🎮)">
+            <input type="text" id="new-name" placeholder="Название приза">
+            <input type="text" id="new-icon" placeholder="Иконка (эмодзи)">
             <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
-            <input type="number" id="new-weight" placeholder="Шанс (вес, например: 10)">
-            <input type="text" id="new-promo" placeholder="Префикс промокода (например: PROMO5)">
-            <button class="main-btn" style="font-size: 12px; padding: 8px;" onclick="addPrize()">Добавить приз</button>
+            <input type="number" id="new-weight" placeholder="Шанс (вес)">
+            <input type="text" id="new-promo" placeholder="Префикс промокода">
+            <button class="main-btn" style="font-size: 11px; padding: 6px;" onclick="addPrize()">Добавить приз</button>
+        </div>
+
+        <!-- Секция добавления админов (видна только супер-админу) -->
+        <div id="super-admin-section" style="display:none; width: 310px; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
+            <div style="font-size: 12px; margin-bottom: 5px; color: #ff1744;">Добавить нового администратора:</div>
+            <div class="add-prize-form">
+                <input type="text" id="new-admin-id" placeholder="Telegram ID админа (цифры)">
+                <input type="text" id="new-club-id" placeholder="ID клуба (например: club_spb)">
+                <button class="main-btn" style="font-size: 11px; padding: 6px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить админом</button>
+            </div>
         </div>
     </div>
 
@@ -258,7 +268,7 @@
         tg.expand();
 
         const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
-        const username = tg.initDataUnsafe?.user?.username || 'ropogku'; // Для теста подставим твой ник
+        const username = tg.initDataUnsafe?.user?.username || 'ropogku';
 
         const allPrizesList = [
             { name: '30 мин', icon: '⏳', rarity: 'common' },
@@ -269,13 +279,14 @@
         ];
 
         let isSpinning = false;
+        let isSuperAdmin = false;
 
-        // Проверяем права администратора при запуске
         async function checkAdminAccess() {
             try {
                 const res = await fetch(`/api/admin/check?userId=${userId}&username=${username}`);
                 const data = await res.json();
                 if (data.isAdmin) {
+                    isSuperAdmin = data.isSuper;
                     const tabsNav = document.getElementById('nav-tabs');
                     const adminTabBtn = document.createElement('button');
                     adminTabBtn.className = 'tab-btn';
@@ -283,6 +294,10 @@
                     adminTabBtn.innerText = '⚙️ Админка';
                     adminTabBtn.onclick = () => switchTab('admin');
                     tabsNav.appendChild(adminTabBtn);
+
+                    if (isSuperAdmin) {
+                        document.getElementById('super-admin-section').style.display = 'block';
+                    }
                 }
             } catch (e) {
                 console.error('Ошибка проверки админа', e);
@@ -392,6 +407,27 @@
                 body: JSON.stringify({ userId, username, prizeId })
             });
             loadAdminPrizes();
+        }
+
+        async function addNewAdmin() {
+            const newAdminId = document.getElementById('new-admin-id').value;
+            const clubId = document.getElementById('new-club-id').value;
+
+            if (!newAdminId || !clubId) return alert('Введите ID админа и ID клуба!');
+
+            const res = await fetch('/api/admin/add-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, newAdminId, clubId })
+            });
+            const data = await res.json();
+            if (data.success) {
+                alert('Администратор успешно назначен!');
+                document.getElementById('new-admin-id').value = '';
+                document.getElementById('new-club-id').value = '';
+            } else {
+                alert(data.error || 'Ошибка');
+            }
         }
 
         async function startCase() {
