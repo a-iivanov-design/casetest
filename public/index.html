@@ -357,7 +357,6 @@
     </div>
 
     <script>
-        // Применяем настройки из config.js
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
@@ -495,7 +494,7 @@
             const listEl = document.getElementById('inventory-list');
             listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
             try {
-                const res = await fetch(`/api/inventory?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/inventory?userId=${userId}`);
                 const data = await res.json();
                 if (!data.items || data.items.length === 0) {
                     listEl.innerHTML = '<div style="text-align: center; color: #777;">У вас пока нет призов</div>';
