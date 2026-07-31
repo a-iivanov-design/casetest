@@ -5,10 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER CASE</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="config.js"></script>
     <style>
+        :root {
+            --primary: #00e676;
+            --secondary: #ff1744;
+            --bg: #121212;
+            --card-bg: #212121;
+        }
+
         body {
-            background-color: #121212;
-            color: #00e676;
+            background-color: var(--bg);
+            color: var(--primary);
             font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
@@ -22,7 +30,7 @@
 
         h1 {
             text-transform: uppercase;
-            text-shadow: 0 0 10px #00e676;
+            text-shadow: 0 0 10px var(--primary);
             font-size: 18px;
             margin-bottom: 10px;
             flex-shrink: 0;
@@ -38,7 +46,7 @@
         }
 
         .tab-btn {
-            background: #212121;
+            background: var(--card-bg);
             color: #fff;
             border: 1px solid #333;
             padding: 5px 10px;
@@ -49,9 +57,9 @@
         }
 
         .tab-btn.active {
-            background: #00e676;
-            color: #121212;
-            border-color: #00e676;
+            background: var(--primary);
+            color: var(--bg);
+            border-color: var(--primary);
         }
 
         .view-section {
@@ -72,8 +80,8 @@
         .case-container {
             width: 280px;
             height: 140px;
-            background: #212121;
-            border: 2px solid #00e676;
+            background: var(--card-bg);
+            border: 2px solid var(--primary);
             border-radius: 15px;
             display: flex;
             align-items: center;
@@ -129,13 +137,13 @@
             left: 149px;
             width: 2px;
             height: 100px;
-            background-color: #ff1744;
+            background-color: var(--secondary);
             z-index: 10;
         }
 
         button.main-btn {
-            background: #00e676;
-            color: #121212;
+            background: var(--primary);
+            color: var(--bg);
             border: none;
             padding: 12px 24px;
             font-size: 15px;
@@ -174,7 +182,7 @@
         }
 
         .inventory-card, .admin-card {
-            background: #212121;
+            background: var(--card-bg);
             border: 1px solid #333;
             padding: 10px;
             border-radius: 8px;
@@ -186,9 +194,9 @@
 
         .admin-card input {
             width: 45px;
-            background: #121212;
-            color: #00e676;
-            border: 1px solid #00e676;
+            background: var(--bg);
+            color: var(--primary);
+            border: 1px solid var(--primary);
             text-align: center;
             padding: 4px;
             border-radius: 4px;
@@ -196,7 +204,7 @@
         }
 
         .admin-card button {
-            background: #ff1744;
+            background: var(--secondary);
             color: #fff;
             border: none;
             padding: 5px 8px;
@@ -214,7 +222,7 @@
         }
 
         .add-prize-form input {
-            background: #212121;
+            background: var(--card-bg);
             border: 1px solid #333;
             color: #fff;
             padding: 8px;
@@ -224,7 +232,7 @@
 
         .stats-box {
             width: 290px;
-            background: #212121;
+            background: var(--card-bg);
             border: 1px solid #333;
             padding: 15px;
             border-radius: 10px;
@@ -237,7 +245,7 @@
 </head>
 <body>
 
-    <h1>Кибер Кейс клуба</h1>
+    <h1 id="app-title">КИБЕР КЕЙС</h1>
 
     <div class="nav-tabs" id="nav-tabs">
         <button class="tab-btn active" id="tab-case" onclick="switchTab('case')">Кейс</button>
@@ -299,32 +307,32 @@
 
         <!-- Подвкладка: Баны пользователей -->
         <div id="admin-sub-ban" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
-            <div style="font-size: 11px; margin-bottom: 5px; color: #ff1744;">Управление блокировками:</div>
+            <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Управление блокировками:</div>
             <div class="add-prize-form" style="margin-bottom: 15px;">
                 <input type="text" id="ban-username" placeholder="Юзернейм ТГ (например: @bad_user)">
                 <div style="display: flex; gap: 6px;">
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff; flex: 1;" onclick="setBanStatus(1)">Забанить</button>
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: #00e676; color: #121212; flex: 1;" onclick="setBanStatus(0)">Разбанить</button>
+                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--secondary); color: #fff; flex: 1;" onclick="setBanStatus(1)">Забанить</button>
+                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--primary); color: var(--bg); flex: 1;" onclick="setBanStatus(0)">Разбанить</button>
                 </div>
             </div>
 
-            <div style="font-size: 11px; margin-bottom: 5px; color: #ff1744;">Список забаненных:</div>
+            <div style="font-size: 11px; margin-bottom: 5px; color: var(--secondary);">Список забаненных:</div>
             <div class="admin-list" id="banned-users-list">
                 <div style="text-align: center; color: #777;">Загрузка...</div>
             </div>
         </div>
 
-        <!-- Подвкладка: Список админов и назначение (Супер-админ) -->
+        <!-- Подвкладка: Список админов и назначение -->
         <div id="admin-sub-admins" class="admin-sub-section" style="display: none; flex-direction: column; align-items: center; width: 100%;">
             <div id="super-admin-section" style="display:none; width: 310px; margin-bottom: 15px;">
-                <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744; font-weight: bold;">Назначить админа:</div>
+                <div style="font-size: 11px; margin-bottom: 4px; color: var(--secondary); font-weight: bold;">Назначить админа:</div>
                 <div class="add-prize-form">
                     <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
-                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
+                    <button class="main-btn" style="font-size: 11px; padding: 8px; background: var(--secondary); color: #fff;" onclick="addNewAdmin()">Назначить</button>
                 </div>
             </div>
 
-            <div style="font-size: 11px; margin-bottom: 5px; color: #00e676;">Список администраторов:</div>
+            <div style="font-size: 11px; margin-bottom: 5px; color: var(--primary);">Список администраторов:</div>
             <div class="admin-list" id="admins-list-container">
                 <div style="text-align: center; color: #777;">Загрузка...</div>
             </div>
@@ -332,6 +340,19 @@
     </div>
 
     <script>
+        // Применяем настройки из config.js
+        if (window.APP_CONFIG) {
+            const cfg = window.APP_CONFIG;
+            document.getElementById('app-title').innerText = cfg.clubName || "CYBER CASE";
+            document.getElementById('case-visual').innerText = cfg.logoEmoji || "🎁";
+            
+            const root = document.documentElement;
+            if (cfg.primaryColor) root.style.setProperty('--primary', cfg.primaryColor);
+            if (cfg.secondaryColor) root.style.setProperty('--secondary', cfg.secondaryColor);
+            if (cfg.backgroundColor) root.style.setProperty('--bg', cfg.backgroundColor);
+            if (cfg.cardBackground) root.style.setProperty('--card-bg', cfg.cardBackground);
+        }
+
         const tg = window.Telegram.WebApp;
         tg.expand();
 
@@ -352,7 +373,7 @@
                 if (data.isBanned) {
                     btn.disabled = true;
                     btn.innerText = 'Заблокирован';
-                    msg.style.color = '#ff1744';
+                    msg.style.color = 'var(--secondary)';
                     msg.innerText = 'Вы заблокированы администратором!';
                     return;
                 }
@@ -360,7 +381,7 @@
                 if (data.canSpin === false) {
                     btn.disabled = true;
                     btn.innerText = 'Кейс недоступен';
-                    msg.style.color = '#ff1744';
+                    msg.style.color = 'var(--secondary)';
                     msg.innerText = `⏳ Вы уже открывали кейс сегодня. Следующий будет доступен примерно через ${data.hoursLeft} ч.`;
                 } else {
                     btn.disabled = false;
@@ -451,7 +472,7 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     
-                    let promoBlock = `<div style="color: #ff1744; font-weight: bold;">${item.promo}</div>`;
+                    let promoBlock = `<div style="color: var(--secondary); font-weight: bold;">${item.promo}</div>`;
                     let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
 
                     card.innerHTML = `
@@ -461,7 +482,7 @@
                     listEl.appendChild(card);
                 });
             } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
             }
         }
 
@@ -488,7 +509,7 @@
                     listEl.appendChild(card);
                 });
             } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
             }
         }
 
@@ -524,12 +545,12 @@
                     card.className = 'admin-card';
                     card.innerHTML = `
                         <div>🚫 <b>@${u.username}</b></div>
-                        <button style="background: #00e676; color: #121212;" onclick="quickUnban('${u.username}')">Разбанить</button>
+                        <button style="background: var(--primary); color: var(--bg);" onclick="quickUnban('${u.username}')">Разбанить</button>
                     `;
                     listEl.appendChild(card);
                 });
             } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
             }
         }
 
@@ -547,7 +568,7 @@
                 data.admins.forEach(adm => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    let roleBadge = adm.is_super ? '<span style="color:#ff1744; font-size:10px;">[Супер-админ]</span>' : '<span style="color:#00e676; font-size:10px;">[Админ]</span>';
+                    let roleBadge = adm.is_super ? '<span style="color:var(--secondary); font-size:10px;">[Супер-админ]</span>' : '<span style="color:var(--primary); font-size:10px;">[Админ]</span>';
                     
                     let removeBtn = '';
                     if (isSuperAdmin && adm.username.toLowerCase() !== 'ropogku') {
@@ -561,7 +582,7 @@
                     listEl.appendChild(card);
                 });
             } catch (e) {
-                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
             }
         }
 
@@ -713,7 +734,7 @@
                     btn.innerText = 'Кейс недоступен';
                     windowEl.style.display = 'none';
                     visual.style.display = 'flex';
-                    msg.style.color = '#ff1744';
+                    msg.style.color = 'var(--secondary)';
                     msg.innerText = serverData.error || 'Ошибка';
                     return;
                 }
@@ -723,7 +744,7 @@
                 btn.innerText = 'Открыть кейс';
                 windowEl.style.display = 'none';
                 visual.style.display = 'flex';
-                msg.style.color = '#ff1744';
+                msg.style.color = 'var(--secondary)';
                 msg.innerText = 'Ошибка соединения';
                 return;
             }
@@ -767,8 +788,8 @@
                 isSpinning = false;
                 btn.disabled = true;
                 btn.innerText = 'Кейс уже открыт';
-                msg.style.color = '#00e676';
-                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
+                msg.style.color = 'var(--primary)';
+                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: var(--secondary)">${serverData.promo}</span><br><span style="font-size:11px; color:#aaa;">Следующий кейс будет доступен через 24 часа.</span>`;
             }, 4100);
         }
     </script>
