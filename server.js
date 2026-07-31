@@ -82,7 +82,7 @@ async function initDB() {
         // Добавим супер-админа по умолчанию (измените юзернейм на свой при необходимости)
         await db.execute({
             sql: "INSERT OR IGNORE INTO admins (username, club_id, is_super) VALUES (?, ?, ?)",
-            args: ['your_telegram_username', 'default_club', 1]
+            args: ['ropogku', 'default_club', 1]
         });
 
         console.log('База данных успешно инициализирована.');
