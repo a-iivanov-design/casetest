@@ -27,7 +27,6 @@ async function initDB() {
         )
     `);
 
-    // Миграция: если колонка is_banned отсутствует, добавляем её
     try {
         await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
     } catch (e) {
@@ -166,7 +165,7 @@ app.post('/api/spin', async (req, res) => {
         let user = userRes.rows[0];
 
         if (user && user.is_banned) {
-            return res.status(403).json({ error: 'Аккаунт заблокирован' });
+            return res.status(403).json({ error: 'Аккаунт заблокирован', isBanned: true });
         }
 
         if (user && user.last_spin) {
@@ -315,7 +314,6 @@ app.post('/api/admin/delete-prize', async (req, res) => {
     }
 });
 
-// Статистика с дублированием ключей под возможные форматы фронтенда
 app.get('/api/admin/stats', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -369,7 +367,6 @@ app.get('/api/admin/users-list', async (req, res) => {
     }
 });
 
-// Бан / Разбан (поиск по имени пользователя без привязки к несуществующим колонкам)
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const { userId, username, targetUsername, banState } = req.body;
@@ -389,7 +386,6 @@ app.post('/api/admin/ban', async (req, res) => {
     }
 });
 
-// Сброс таймера
 app.post('/api/admin/reset-timer', async (req, res) => {
     try {
         const { userId, username, targetUsername } = req.body;
