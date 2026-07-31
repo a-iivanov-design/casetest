@@ -5,11 +5,12 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware для чтения JSON
+// Твой Telegram ID как главного администратора (без лимитов)
+const SUPER_ADMIN_ID = '@ropogku'; // Замени на свой цифровой ID или оставь пока так для тестов
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Инициализация базы данных SQLite
 const dbFile = path.join(__dirname, 'database.sqlite');
 const db = new sqlite3.Database(dbFile, (err) => {
     if (err) {
@@ -20,17 +21,14 @@ const db = new sqlite3.Database(dbFile, (err) => {
     }
 });
 
-// Создание таблиц и заполнение базовыми призами для клуба по умолчанию
 function initDatabase() {
     db.serialize(() => {
-        // Таблица пользователей
         db.run(`CREATE TABLE IF NOT EXISTS users (
             id TEXT PRIMARY KEY,
             club_id TEXT DEFAULT 'default_club',
             has_spun INTEGER DEFAULT 0
         )`);
 
-        // Таблица призов с шансами (weight)
         db.run(`CREATE TABLE IF NOT EXISTS prizes (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             club_id TEXT DEFAULT 'default_club',
@@ -41,7 +39,6 @@ function initDatabase() {
             promo_prefix TEXT
         )`);
 
-        // Таблица инвентаря выигранных призов
         db.run(`CREATE TABLE IF NOT EXISTS inventory (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id TEXT,
@@ -52,7 +49,16 @@ function initDatabase() {
             won_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Проверяем, есть ли призы в базе. Если нет — добавляем стандартные
+        // Таблица администраторов клубов (по Telegram ID или username)
+        db.run(`CREATE TABLE IF NOT EXISTS admins (
+            telegram_id TEXT PRIMARY KEY,
+            club_id TEXT DEFAULT 'default_club',
+            role TEXT DEFAULT 'admin'
+        )`);
+
+        // Добавляем тестового супер-админа
+        db.run(`INSERT OR IGNORE INTO admins (telegram_id, club_id, role) VALUES (?, ?, ?)`, [SUPER_ADMIN_ID, 'default_club', 'superadmin']);
+
         db.get(`SELECT COUNT(*) as count FROM prizes`, (err, row) => {
             if (row.count === 0) {
                 const defaultPrizes = [
@@ -68,30 +74,39 @@ function initDatabase() {
                     stmt.run(p.name, p.icon, p.rarity, p.weight, p.promo);
                 });
                 stmt.finalize();
-                console.log('Базовые призы успешно добавлены в базу данных.');
             }
         });
     });
 }
 
-// Эндпоинт для прокрутки кейса
+// Проверка прав администратора
+function checkAdmin(userId, callback) {
+    if (userId === SUPER_ADMIN_ID) {
+        return callback(true, 'default_club');
+    }
+    db.get(`SELECT club_id FROM admins WHERE telegram_id = ?`, [userId], (err, row) => {
+        if (row) {
+            callback(true, row.club_id);
+        } else {
+            callback(false, null);
+        }
+    });
+}
+
+// Эндпоинт прокрутки кейса с исключением для админа
 app.post('/api/spin', (req, res) => {
-    const userId = req.body.userId || 'test_user';
+    const userId = String(req.body.userId || 'test_user');
     const clubId = req.body.clubId || 'default_club';
 
-    // Проверяем, крутил ли уже пользователь кейс
-    db.get(`SELECT has_spun FROM users WHERE id = ?`, [userId], (err, user) => {
-        if (user && user.has_spun === 1) {
-            return res.status(400).json({ error: 'Вы уже открывали этот кейс!' });
-        }
+    const isSuper = (userId === SUPER_ADMIN_ID);
 
-        // Достаем все призы для этого клуба
+    // Если не супер-админ, проверяем лимит
+    const proceedWithSpin = () => {
         db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
             if (err || !prizes.length) {
-                return res.status(500).json({ error: 'Ошибка сервера или призы не найдены' });
+                return res.status(500).json({ error: 'Призы не найдены' });
             }
 
-            // Алгоритм выбора приза по весу (шансам)
             const totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
             let randomNum = Math.random() * totalWeight;
             let winningPrize = prizes[0];
@@ -106,37 +121,103 @@ app.post('/api/spin', (req, res) => {
 
             const uniquePromo = `${winningPrize.promo_prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-            // Сохраняем в базу, что пользователь уже открыл кейс
-            db.run(`INSERT OR REPLACE INTO users (id, club_id, has_spun) VALUES (?, ?, 1)`, [userId, clubId]);
+            // Блокируем повтор только для обычных пользователей
+            if (!isSuper) {
+                db.run(`INSERT OR REPLACE INTO users (id, club_id, has_spun) VALUES (?, ?, 1)`, [userId, clubId]);
+            }
 
-            // Записываем приз в инвентарь пользователя
             db.run(
                 `INSERT INTO inventory (user_id, prize_name, icon, rarity, promo) VALUES (?, ?, ?, ?, ?)`,
                 [userId, winningPrize.name, winningPrize.icon, winningPrize.rarity, uniquePromo]
             );
 
-            // Отправляем результат клиенту
             res.json({
-                prize: {
-                    name: winningPrize.name,
-                    icon: winningPrize.icon,
-                    rarity: winningPrize.rarity
-                },
+                prize: { name: winningPrize.name, icon: winningPrize.icon, rarity: winningPrize.rarity },
                 promo: uniquePromo
             });
+        });
+    };
+
+    if (isSuper) {
+        proceedWithSpin();
+    } else {
+        db.get(`SELECT has_spun FROM users WHERE id = ?`, [userId], (err, user) => {
+            if (user && user.has_spun === 1) {
+                return res.status(400).json({ error: 'Вы уже открывали этот кейс!' });
+            }
+            proceedWithSpin();
+        });
+    }
+});
+
+// Получение инвентаря
+app.get('/api/inventory', (req, res) => {
+    const userId = String(req.query.userId || 'test_user');
+    db.all(`SELECT prize_name, icon, rarity, promo, won_at FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
+        if (err) return res.status(500).json({ error: 'Ошибка' });
+        res.json({ items });
+    });
+});
+
+// Проверка: является ли пользователь админом
+app.get('/api/admin/check', (req, res) => {
+    const userId = String(req.query.userId || '');
+    checkAdmin(userId, (isAdmin, clubId) => {
+        res.json({ isAdmin, clubId });
+    });
+});
+
+// Получение списка призов для админки
+app.get('/api/admin/prizes', (req, res) => {
+    const userId = String(req.query.userId || '');
+    checkAdmin(userId, (isAdmin, clubId) => {
+        if (!isAdmin) return res.status(403.json({ error: 'Нет доступа' }));
+        db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
+            res.json({ prizes });
         });
     });
 });
 
-// Эндпоинт для получения инвентаря пользователя
-app.get('/api/inventory', (req, res) => {
-    const userId = req.query.userId || 'test_user';
+// Изменение шанса / веса приза
+app.post('/api/admin/update-prize', (req, res) => {
+    const { userId, prizeId, weight } = req.body;
+    checkAdmin(String(userId), (isAdmin, clubId) => {
+        if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+        db.run(`UPDATE prizes SET weight = ? WHERE id = ? AND club_id = ?`, [weight, prizeId, clubId], (err) => {
+            if (err) return res.status(500).json({ error: 'Ошибка обновления' });
+            res.json({ success: true });
+        });
+    });
+});
 
-    db.all(`SELECT prize_name, icon, rarity, promo, won_at FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
-        if (err) {
-            return res.status(500).json({ error: 'Ошибка получения инвентаря' });
-        }
-        res.json({ items });
+// Добавление нового приза
+app.post('/api/admin/add-prize', (req, res) => {
+    const { userId, name, icon, rarity, weight, promo_prefix } = req.body;
+    checkAdmin(String(userId), (isAdmin, clubId) => {
+        if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+        db.run(
+            `INSERT INTO prizes (club_id, name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?, ?)`,
+            [clubId, name, icon, rarity, weight, promo_prefix],
+            (err) => {
+                if (err) return res.status(500).json({ error: 'Ошибка добавления' });
+                res.json({ success: true });
+            }
+        );
+    });
+});
+
+// Удаление приза
+app.post('/api/admin/delete-prize', (req, res) => {
+    const { userId, prizeId }`, (req, res) => { ... });
+
+app.post('/api/admin/delete-prize', (req, res) => {
+    const { userId, prizeId } = req.body;
+    checkAdmin(String(userId), (isAdmin, clubId) => {
+        if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
+        db.run(`DELETE FROM prizes WHERE id = ? AND club_id = ?`, [prizeId, clubId], (err) => {
+            if (err) return res.status(500).json({ error: 'Ошибка удаления' });
+            res.json({ success: true });
+        });
     });
 });
 
