@@ -313,7 +313,6 @@
             <div style="font-size: 11px; margin-bottom: 4px; color: #ff1744; font-weight: bold;">Назначить админа:</div>
             <div class="add-prize-form">
                 <input type="text" id="new-admin-username" placeholder="Юзернейм (@admin)">
-                <input type="text" id="new-club-id" placeholder="ID клуба">
                 <button class="main-btn" style="font-size: 11px; padding: 8px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить</button>
             </div>
         </div>
@@ -570,7 +569,7 @@
             const newAdminUsername = document.getElementById('new-admin-username').value;
             const clubId = document.getElementById('new-club-id').value;
 
-            if (!newAdminUsername || !clubId) return alert('Введите юзернейм и ID клуба!');
+            if (!newAdminUsername || !clubId) return alert('Введите юзернейм нового админа');
 
             const res = await fetch('/api/admin/add-admin', {
                 method: 'POST',
