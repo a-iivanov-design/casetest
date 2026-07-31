@@ -252,11 +252,11 @@
             <button class="main-btn" style="font-size: 11px; padding: 6px;" onclick="addPrize()">Добавить приз</button>
         </div>
 
-        <!-- Секция добавления админов (видна только супер-админу) -->
+        <!-- Секция добавления админов по юзернейму -->
         <div id="super-admin-section" style="display:none; width: 310px; margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
-            <div style="font-size: 12px; margin-bottom: 5px; color: #ff1744;">Добавить нового администратора:</div>
+            <div style="font-size: 12px; margin-bottom: 5px; color: #ff1744;">Добавить админа по юзернейму:</div>
             <div class="add-prize-form">
-                <input type="text" id="new-admin-id" placeholder="Telegram ID админа (цифры)">
+                <input type="text" id="new-admin-username" placeholder="Юзернейм (например: @ivan_admin)">
                 <input type="text" id="new-club-id" placeholder="ID клуба (например: club_spb)">
                 <button class="main-btn" style="font-size: 11px; padding: 6px; background: #ff1744; color: #fff;" onclick="addNewAdmin()">Назначить админом</button>
             </div>
@@ -410,20 +410,20 @@
         }
 
         async function addNewAdmin() {
-            const newAdminId = document.getElementById('new-admin-id').value;
+            const newAdminUsername = document.getElementById('new-admin-username').value;
             const clubId = document.getElementById('new-club-id').value;
 
-            if (!newAdminId || !clubId) return alert('Введите ID админа и ID клуба!');
+            if (!newAdminUsername || !clubId) return alert('Введите юзернейм и ID клуба!');
 
             const res = await fetch('/api/admin/add-admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, newAdminId, clubId })
+                body: JSON.stringify({ userId, username, newAdminUsername, clubId })
             });
             const data = await res.json();
             if (data.success) {
-                alert('Администратор успешно назначен!');
-                document.getElementById('new-admin-id').value = '';
+                alert('Администратор успешно назначен по юзернейму!');
+                document.getElementById('new-admin-username').value = '';
                 document.getElementById('new-club-id').value = '';
             } else {
                 alert(data.error || 'Ошибка');
@@ -472,9 +472,9 @@
                 btn.innerText = 'Открыть кейс';
                 windowEl.style.display = 'none';
                 visual.style.display = 'flex';
-                msg.style.color = '#ff1744';
-                msg.innerText = 'Ошибка соединения';
-                return;
+                    msg.style.color = '#ff1744';
+                    msg.innerText = 'Ошибка соединения';
+                    return;
             }
 
             const winningPrize = serverData.prize;
