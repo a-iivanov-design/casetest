@@ -16,11 +16,9 @@ const db = createClient({
 
 async function initDB() {
     try {
-        await db.execute(`DROP TABLE IF EXISTS inventory`);
-        await db.execute(`DROP TABLE IF EXISTS users`);
-        await db.execute(`DROP TABLE IF EXISTS prizes`);
-        await db.execute(`DROP TABLE IF EXISTS admins`);
-
+        // ВНИМАНИЕ: Убраны команды DROP TABLE, чтобы при перезапуске/деплое 
+        // на Render данные в базе данных Turso больше никогда не стирались!
+        
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
@@ -84,7 +82,7 @@ async function initDB() {
             args: ['ropogku', 1]
         });
 
-        console.log('База данных успешно инициализирована.');
+        console.log('База данных успешно инициализирована (данные сохранены).');
     } catch (err) {
         console.error('Ошибка инициализации БД:', err);
     }
@@ -296,6 +294,20 @@ app.get('/api/admin/list', async (req, res) => {
 
         const result = await db.execute("SELECT username, is_super FROM admins");
         res.json({ admins: result.rows });
+    } catch (e) {
+        res.status(500).json({ error: 'Ошибка сервера' });
+    }
+});
+
+// НОВОЕ: Получить список забаненных пользователей
+app.get('/api/admin/banned-list', async (req, res) => {
+    try {
+        const { userId, username } = req.query;
+        const adminCheck = await checkAdmin(userId, username);
+        if (!adminCheck.isAdmin) return res.status(403).json({ error: 'Доступ запрещен' });
+
+        const result = await db.execute("SELECT username, user_id FROM users WHERE banned = 1");
+        res.json({ bannedUsers: result.rows });
     } catch (e) {
         res.status(500).json({ error: 'Ошибка сервера' });
     }
