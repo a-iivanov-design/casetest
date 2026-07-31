@@ -1,4 +1,4 @@
-const superAdminUsername = 'ТВОЙ_ТЕЛЕГРАМ_НИК'; // Твой ник в Telegram без @
+const superAdminUsername = 'ropogku'; // Твой ник в Telegram без @
 
 const express = require('express');
 const { createClient } = require('@libsql/client');
