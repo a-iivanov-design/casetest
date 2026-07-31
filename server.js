@@ -127,7 +127,7 @@ app.post('/api/spin', (req, res) => {
             }
 
             db.run(
-                `INSERT INTO inventory (user_id, prize_name, icon, rarity, promo, won_at) VALUES (?, ?, ?, ?, ?, datetime('now'))`,
+                `INSERT INTO inventory (user_id, prize_name, icon, rarity, promo, won_at) VALUES (?, ?, ?, ?, ?, datetime('now', 'utc'))`,
                 [userId, winningPrize.name, winningPrize.icon, winningPrize.rarity, uniquePromo]
             );
 
@@ -150,7 +150,7 @@ app.post('/api/spin', (req, res) => {
     }
 });
 
-// Инвентарь с проверкой актуальности (2 дня / 48 часов)
+// Инвентарь с безопасной обработкой дат и лимитом 48 часов
 app.get('/api/inventory', (req, res) => {
     const userId = String(req.query.userId || 'test_user');
     db.all(`SELECT id, prize_name, icon, rarity, promo, won_at, is_used FROM inventory WHERE user_id = ? ORDER BY won_at DESC`, [userId], (err, items) => {
@@ -158,12 +158,20 @@ app.get('/api/inventory', (req, res) => {
 
         const now = new Date();
         const formattedItems = items.map(item => {
-            const wonDate = new Date(item.won_at + ' UTC'); // База пишет в UTC
-            const diffHours = (now - wonDate) / (1000 * 60 * 60);
+            let rawDate = item.won_at;
+            if (rawDate && !rawDate.endsWith('Z') && !rawDate.includes('+')) {
+                rawDate = rawDate.replace(' ', 'T') + 'Z';
+            }
+            
+            const wonDate = new Date(rawDate);
+            const isValidDate = !isNaN(wonDate.getTime());
+            
+            const diffHours = isValidDate ? (now - wonDate) / (1000 * 60 * 60) : 0;
             const isExpired = diffHours > 48;
 
             return {
                 ...item,
+                won_at: isValidDate ? wonDate.toISOString() : new Date().toISOString(),
                 isExpired
             };
         });
