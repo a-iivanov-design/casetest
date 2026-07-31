@@ -268,7 +268,7 @@
         tg.expand();
 
         const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
-        const username = tg.initDataUnsafe?.user?.username || 'ropogku';
+        const username = tg.initDataUnsafe?.user?.username || '';
 
         const allPrizesList = [
             { name: '30 мин', icon: '⏳', rarity: 'common' },
@@ -339,7 +339,7 @@
                     card.className = 'inventory-card';
                     
                     let promoBlock = `<div style="color: #ff1744; font-weight: bold;">${item.promo}</div>`;
-                    let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at + ' UTC').toLocaleString()}</span>`;
+                    let statusText = `<span style="font-size:10px; color:#888;">Получено: ${new Date(item.won_at).toLocaleString()}</span>`;
 
                     if (item.isExpired) {
                         promoBlock = `<div style="color: #616161; font-weight: bold; text-decoration: line-through;">Срок истек</div>`;
