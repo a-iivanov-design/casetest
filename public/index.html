@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CYBER CASE</title>
-    <!-- Подключаем официальный скрипт Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
@@ -23,7 +22,42 @@
         h1 {
             text-transform: uppercase;
             text-shadow: 0 0 10px #00e676;
-            font-size: 22px;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tab-btn {
+            background: #212121;
+            color: #fff;
+            border: 1px solid #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .tab-btn.active {
+            background: #00e676;
+            color: #121212;
+            border-color: #00e676;
+        }
+
+        .view-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+        }
+
+        .view-section.active {
+            display: flex;
         }
 
         .case-container {
@@ -88,7 +122,7 @@
             z-index: 10;
         }
 
-        button {
+        button.main-btn {
             background: #00e676;
             color: #121212;
             border: none;
@@ -101,17 +135,45 @@
             box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
         }
 
-        button:disabled {
+        button.main-btn:disabled {
             background: #616161;
             cursor: not-allowed;
         }
 
         #result-message {
             margin-top: 15px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
             text-align: center;
             min-height: 2.5em;
+        }
+
+        .inventory-list {
+            width: 300px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inventory-card {
+            background: #212121;
+            border: 1px solid #333;
+            padding: 12px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inventory-card .info {
+            font-size: 14px;
+        }
+
+        .inventory-card .promo {
+            color: #ff1744;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -119,20 +181,36 @@
 
     <h1>Кибер Кейс клуба</h1>
 
-    <div class="case-container" id="case-visual">🎁</div>
-
-    <div class="roller-window" id="roller-window">
-        <div class="selector"></div>
-        <div class="roller-content" id="roller-content"></div>
+    <div class="nav-tabs">
+        <button class="tab-btn active" id="tab-case" onclick="switchTab('case')">Кейс</button>
+        <button class="tab-btn" id="tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
     </div>
 
-    <button id="action-button" onclick="startCase()">Открыть кейс</button>
-    <div id="result-message"></div>
+    <!-- Вкладка Кейса -->
+    <div id="section-case" class="view-section active">
+        <div class="case-container" id="case-visual">🎁</div>
+
+        <div class="roller-window" id="roller-window">
+            <div class="selector"></div>
+            <div class="roller-content" id="roller-content"></div>
+        </div>
+
+        <button class="main-btn" id="action-button" onclick="startCase()">Открыть кейс</button>
+        <div id="result-message"></div>
+    </div>
+
+    <!-- Вкладка Инвентаря -->
+    <div id="section-inventory" class="view-section">
+        <div class="inventory-list" id="inventory-list">
+            <div style="text-align: center; color: #777;">Загрузка инвентаря...</div>
+        </div>
+    </div>
 
     <script>
-        // Инициализация Telegram WebApp
         const tg = window.Telegram.WebApp;
         tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
 
         const allPrizesList = [
             { name: '30 мин', icon: '⏳', rarity: 'common' },
@@ -143,6 +221,51 @@
         ];
 
         let isSpinning = false;
+
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+
+            if (tab === 'case') {
+                document.getElementById('tab-case').classList.add('active');
+                document.getElementById('section-case').classList.add('active');
+            } else {
+                document.getElementById('tab-inventory').classList.add('active');
+                document.getElementById('section-inventory').classList.add('active');
+                loadInventory();
+            }
+        }
+
+        async function loadInventory() {
+            const listEl = document.getElementById('inventory-list');
+            listEl.innerHTML = '<div style="text-align: center; color: #777;">Загрузка...</div>';
+
+            try {
+                const res = await fetch(`/api/inventory?userId=${userId}`);
+                const data = await res.json();
+
+                if (!data.items || data.items.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: #777;">У вас пока нет призов</div>';
+                    return;
+                }
+
+                listEl.innerHTML = '';
+                data.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'inventory-card';
+                    card.innerHTML = `
+                        <div class="info">
+                            <div><b>${item.icon} ${item.prize_name}</b></div>
+                            <div style="font-size: 11px; color: #888;">${new Date(item.won_at).toLocaleString()}</div>
+                        </div>
+                        <div class="promo">${item.promo}</div>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: #ff1744;">Ошибка загрузки</div>';
+            }
+        }
 
         async function startCase() {
             if (isSpinning) return;
@@ -166,14 +289,29 @@
                 const response = await fetch('/api/spin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: tg.initDataUnsafe?.user?.id || 'test_user' })
+                    body: JSON.stringify({ userId: userId, clubId: 'default_club' })
                 });
                 serverData = await response.json();
+
+                if (response.status !== 200) {
+                    isSpinning = false;
+                    btn.disabled = false;
+                    btn.innerText = 'Открыть кейс';
+                    windowEl.style.display = 'none';
+                    visual.style.display = 'flex';
+                    msg.style.color = '#ff1744';
+                    msg.innerText = serverData.error || 'Произошла ошибка';
+                    return;
+                }
             } catch (e) {
-                serverData = {
-                    prize: { name: '1 час', icon: '⏰', rarity: 'uncommon' },
-                    promo: 'TEST-PROMO'
-                };
+                isSpinning = false;
+                btn.disabled = false;
+                btn.innerText = 'Открыть кейс';
+                windowEl.style.display = 'none';
+                visual.style.display = 'flex';
+                msg.style.color = '#ff1744';
+                msg.innerText = 'Ошибка соединения с сервером';
+                return;
             }
 
             const winningPrize = serverData.prize;
@@ -201,8 +339,8 @@
 
             setTimeout(() => {
                 isSpinning = false;
-                btn.innerText = 'Ещё раз';
-                btn.disabled = false;
+                btn.innerText = 'Открыто';
+                msg.style.color = '#00e676';
                 msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span>`;
             }, 4100);
         }
