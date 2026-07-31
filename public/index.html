@@ -624,7 +624,7 @@
                     return;
                 }
             } catch (e) {
-                isSpinning, isSpinning = false;
+                isSpinning = false;
                 btn.disabled = false;
                 btn.innerText = 'Открыть кейс';
                 windowEl.style.display = 'none';
@@ -636,7 +636,6 @@
 
             const winningPrize = serverData.prize;
 
-            // Если список призов еще не загружен в админке, подгрузим для рулетки
             let availablePrizes = cachedServerPrizes;
             if (!availablePrizes || availablePrizes.length === 0) {
                 try {
