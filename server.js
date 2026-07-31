@@ -7,18 +7,16 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Раздаем статику из папки public
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к базе данных Turso
 const db = createClient({
     url: process.env.TURSO_DATABASE_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
-// Инициализация таблиц и автомиграции при запуске сервера
 async function initDB() {
     try {
+        // Создаем таблицы, если их нет
         await db.execute(`
             CREATE TABLE IF NOT EXISTS users (
                 user_id TEXT PRIMARY KEY,
@@ -27,13 +25,6 @@ async function initDB() {
                 last_spin DATETIME
             )
         `);
-
-        // Авто-добавление колонки, если таблица была создана ранее без неё
-        try {
-            await db.execute(`ALTER TABLE users ADD COLUMN last_spin DATETIME`);
-        } catch (e) {
-            // Колонка уже существует, игнорируем ошибку
-        }
 
         await db.execute(`
             CREATE TABLE IF NOT EXISTS prizes (
@@ -65,16 +56,27 @@ async function initDB() {
             )
         `);
 
-        // Авто-добавление колонки club_id, если таблица admins уже была
-        try {
-            await db.execute(`ALTER TABLE admins ADD COLUMN club_id TEXT`);
-        } catch (e) {}
+        // Авто-добавление недостающих колонок в таблицы, если они были созданы ранее в урезанном виде
+        const ensureColumn = async (table, column, definition) => {
+            try {
+                await db.execute(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+            } catch (e) {}
+        };
 
-        try {
-            await db.execute(`ALTER TABLE admins ADD COLUMN is_super INTEGER DEFAULT 0`);
-        } catch (e) {}
+        await ensureColumn('users', 'username', 'TEXT');
+        await ensureColumn('users', 'banned', 'INTEGER DEFAULT 0');
+        await ensureColumn('users', 'last_spin', 'DATETIME');
 
-        // Проверяем, есть ли призы, если нет — создаем дефолтные
+        await ensureColumn('inventory', 'user_id', 'TEXT');
+        await ensureColumn('inventory', 'prize_name', 'TEXT');
+        await ensureColumn('inventory', 'icon', 'TEXT');
+        await ensureColumn('inventory', 'promo', 'TEXT');
+        await ensureColumn('inventory', 'won_at', 'DATETIME DEFAULT CURRENT_TIMESTAMP');
+
+        await ensureColumn('admins', 'club_id', 'TEXT');
+        await ensureColumn('admins', 'is_super', 'INTEGER DEFAULT 0');
+
+        // Дефолтные призы
         const prizesCount = await db.execute("SELECT COUNT(*) as count FROM prizes");
         if (prizesCount.rows[0].count === 0) {
             await db.execute({
@@ -95,20 +97,19 @@ async function initDB() {
             });
         }
 
-        // Замените 'your_telegram_username' на ваш реальный ник в ТГ (без @), чтобы получить права супер-админа
+        // Укажите ваш Telegram username (без @) вместо 'your_telegram_username' для получения прав супер-админа
         await db.execute({
             sql: "INSERT OR IGNORE INTO admins (username, club_id, is_super) VALUES (?, ?, ?)",
             args: ['ropogku', 'default_club', 1]
         });
 
-        console.log('База данных успешно инициализирована.');
+        console.log('База данных и миграции успешно выполнены.');
     } catch (err) {
         console.error('Ошибка инициализации БД:', err);
     }
 }
 initDB();
 
-// Вспомогательная функция проверки прав администратора
 async function checkAdmin(userId, username) {
     if (!username) return { isAdmin: false, isSuper: false };
     const cleanUsername = username.replace('@', '').toLowerCase();
@@ -125,7 +126,6 @@ async function checkAdmin(userId, username) {
     return { isAdmin: false, isSuper: false };
 }
 
-// 1. Проверка статуса пользователя
 app.get('/api/status', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -167,7 +167,6 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-// 2. Проверка админ-доступа
 app.get('/api/admin/check', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -178,7 +177,6 @@ app.get('/api/admin/check', async (req, res) => {
     }
 });
 
-// 3. Получение инвентаря
 app.get('/api/inventory', async (req, res) => {
     try {
         const { userId } = req.query;
@@ -199,11 +197,11 @@ app.get('/api/inventory', async (req, res) => {
 
         res.json({ items });
     } catch (e) {
+        console.error(e);
         res.status(500).json({ error: 'Ошибка сервера' });
     }
 });
 
-// 4. Открытие кейса (спин)
 app.post('/api/spin', async (req, res) => {
     try {
         const { userId, username } = req.body;
@@ -252,7 +250,6 @@ app.post('/api/spin', async (req, res) => {
             args: [userId, selectedPrize.name, selectedPrize.icon, promoCode, nowIso]
         });
 
-        // Безопасное обновление юзера (если нет строки — создадим, если есть — обновим)
         await db.execute({
             sql: `INSERT INTO users (user_id, username, banned, last_spin) VALUES (?, ?, 0, ?) 
                   ON CONFLICT(user_id) DO UPDATE SET last_spin = ?, username = ?`,
@@ -269,11 +266,9 @@ app.post('/api/spin', async (req, res) => {
         });
     } catch (e) {
         console.error('Ошибка в /api/spin:', e);
-        res.status(500).json({ error: 'Ошибка при открытии кейса' });
+        res.status(500).json({ error: 'Ошибка: ' + (e.message || e) });
     }
 });
-
-// --- АДМИНСКИЕ МАРШРУТЫ ---
 
 app.get('/api/admin/prizes', async (req, res) => {
     try {
