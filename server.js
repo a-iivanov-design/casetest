@@ -5,8 +5,8 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Твой Telegram ID как главного администратора (без лимитов)
-const SUPER_ADMIN_ID = '@ropogku'; // Замени на свой цифровой ID или оставь пока так для тестов
+// Твой ник в качестве маркера главного администратора
+const SUPER_ADMIN_USERNAME = 'ropogku';
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -49,15 +49,11 @@ function initDatabase() {
             won_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`);
 
-        // Таблица администраторов клубов (по Telegram ID или username)
         db.run(`CREATE TABLE IF NOT EXISTS admins (
             telegram_id TEXT PRIMARY KEY,
             club_id TEXT DEFAULT 'default_club',
             role TEXT DEFAULT 'admin'
         )`);
-
-        // Добавляем тестового супер-админа
-        db.run(`INSERT OR IGNORE INTO admins (telegram_id, club_id, role) VALUES (?, ?, ?)`, [SUPER_ADMIN_ID, 'default_club', 'superadmin']);
 
         db.get(`SELECT COUNT(*) as count FROM prizes`, (err, row) => {
             if (row.count === 0) {
@@ -80,8 +76,8 @@ function initDatabase() {
 }
 
 // Проверка прав администратора
-function checkAdmin(userId, callback) {
-    if (userId === SUPER_ADMIN_ID) {
+function checkAdmin(userId, username, callback) {
+    if (username === SUPER_ADMIN_USERNAME || userId === SUPER_ADMIN_USERNAME) {
         return callback(true, 'default_club');
     }
     db.get(`SELECT club_id FROM admins WHERE telegram_id = ?`, [userId], (err, row) => {
@@ -93,14 +89,14 @@ function checkAdmin(userId, callback) {
     });
 }
 
-// Эндпоинт прокрутки кейса с исключением для админа
+// Эндпоинт прокрутки кейса
 app.post('/api/spin', (req, res) => {
     const userId = String(req.body.userId || 'test_user');
+    const username = String(req.body.username || '');
     const clubId = req.body.clubId || 'default_club';
 
-    const isSuper = (userId === SUPER_ADMIN_ID);
+    const isSuper = (username === SUPER_ADMIN_USERNAME || userId === SUPER_ADMIN_USERNAME);
 
-    // Если не супер-админ, проверяем лимит
     const proceedWithSpin = () => {
         db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
             if (err || !prizes.length) {
@@ -121,7 +117,6 @@ app.post('/api/spin', (req, res) => {
 
             const uniquePromo = `${winningPrize.promo_prefix}-${Math.floor(1000 + Math.random() * 9000)}`;
 
-            // Блокируем повтор только для обычных пользователей
             if (!isSuper) {
                 db.run(`INSERT OR REPLACE INTO users (id, club_id, has_spun) VALUES (?, ?, 1)`, [userId, clubId]);
             }
@@ -159,10 +154,11 @@ app.get('/api/inventory', (req, res) => {
     });
 });
 
-// Проверка: является ли пользователь админом
+// Проверка админа
 app.get('/api/admin/check', (req, res) => {
     const userId = String(req.query.userId || '');
-    checkAdmin(userId, (isAdmin, clubId) => {
+    const username = String(req.query.username || '');
+    checkAdmin(userId, username, (isAdmin, clubId) => {
         res.json({ isAdmin, clubId });
     });
 });
@@ -170,18 +166,19 @@ app.get('/api/admin/check', (req, res) => {
 // Получение списка призов для админки
 app.get('/api/admin/prizes', (req, res) => {
     const userId = String(req.query.userId || '');
-    checkAdmin(userId, (isAdmin, clubId) => {
-        if (!isAdmin) return res.status(403.json({ error: 'Нет доступа' }));
+    const username = String(req.query.username || '');
+    checkAdmin(userId, username, (isAdmin, clubId) => {
+        if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
         db.all(`SELECT * FROM prizes WHERE club_id = ?`, [clubId], (err, prizes) => {
             res.json({ prizes });
         });
     });
 });
 
-// Изменение шанса / веса приза
+// Изменение веса приза
 app.post('/api/admin/update-prize', (req, res) => {
-    const { userId, prizeId, weight } = req.body;
-    checkAdmin(String(userId), (isAdmin, clubId) => {
+    const { userId, username, prizeId, weight } = req.body;
+    checkAdmin(String(userId), String(username), (isAdmin, clubId) => {
         if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
         db.run(`UPDATE prizes SET weight = ? WHERE id = ? AND club_id = ?`, [weight, prizeId, clubId], (err) => {
             if (err) return res.status(500).json({ error: 'Ошибка обновления' });
@@ -190,10 +187,10 @@ app.post('/api/admin/update-prize', (req, res) => {
     });
 });
 
-// Добавление нового приза
+// Добавление приза
 app.post('/api/admin/add-prize', (req, res) => {
-    const { userId, name, icon, rarity, weight, promo_prefix } = req.body;
-    checkAdmin(String(userId), (isAdmin, clubId) => {
+    const { userId, username, name, icon, rarity, weight, promo_prefix } = req.body;
+    checkAdmin(String(userId), String(username), (isAdmin, clubId) => {
         if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
         db.run(
             `INSERT INTO prizes (club_id, name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?, ?)`,
@@ -208,11 +205,8 @@ app.post('/api/admin/add-prize', (req, res) => {
 
 // Удаление приза
 app.post('/api/admin/delete-prize', (req, res) => {
-    const { userId, prizeId }`, (req, res) => { ... });
-
-app.post('/api/admin/delete-prize', (req, res) => {
-    const { userId, prizeId } = req.body;
-    checkAdmin(String(userId), (isAdmin, clubId) => {
+    const { userId, username, prizeId } = req.body;
+    checkAdmin(String(userId), String(username), (isAdmin, clubId) => {
         if (!isAdmin) return res.status(403).json({ error: 'Нет доступа' });
         db.run(`DELETE FROM prizes WHERE id = ? AND club_id = ?`, [prizeId, clubId], (err) => {
             if (err) return res.status(500).json({ error: 'Ошибка удаления' });
