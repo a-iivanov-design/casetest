@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER CASE</title>
+    <!-- Подключаем официальный скрипт Telegram Mini App -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background-color: #121212;
+            color: #00e676;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            text-transform: uppercase;
+            text-shadow: 0 0 10px #00e676;
+            font-size: 22px;
+        }
+
+        .case-container {
+            width: 280px;
+            height: 140px;
+            background: #212121;
+            border: 2px solid #00e676;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+            font-size: 50px;
+            box-shadow: 0 0 20px rgba(0, 230, 118, 0.3);
+        }
+
+        .roller-window {
+            width: 300px;
+            height: 100px;
+            overflow: hidden;
+            position: relative;
+            background-color: #000;
+            border-radius: 10px;
+            border: 1px solid #333;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .roller-content {
+            display: flex;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .prize-item {
+            width: 100px;
+            height: 100px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-right: 1px solid #333;
+            box-sizing: border-box;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .prize-common { color: #fff; }
+        .prize-uncommon { color: #42a5f5; }
+        .prize-rare { color: #ab47bc; }
+        .prize-epic { color: #ffa726; }
+
+        .selector {
+            position: absolute;
+            top: 0;
+            left: 149px;
+            width: 2px;
+            height: 100px;
+            background-color: #ff1744;
+            z-index: 10;
+        }
+
+        button {
+            background: #00e676;
+            color: #121212;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 230, 118, 0.5);
+        }
+
+        button:disabled {
+            background: #616161;
+            cursor: not-allowed;
+        }
+
+        #result-message {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            min-height: 2.5em;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Кибер Кейс клуба</h1>
+
+    <div class="case-container" id="case-visual">🎁</div>
+
+    <div class="roller-window" id="roller-window">
+        <div class="selector"></div>
+        <div class="roller-content" id="roller-content"></div>
+    </div>
+
+    <button id="action-button" onclick="startCase()">Открыть кейс</button>
+    <div id="result-message"></div>
+
+    <script>
+        // Инициализация Telegram WebApp
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const allPrizesList = [
+            { name: '30 мин', icon: '⏳', rarity: 'common' },
+            { name: '1 час', icon: '⏰', rarity: 'uncommon' },
+            { name: 'Энергетик', icon: '⚡', rarity: 'uncommon' },
+            { name: '3 часа', icon: '🎮', rarity: 'rare' },
+            { name: 'Ночной пакет', icon: '🌙', rarity: 'epic' }
+        ];
+
+        let isSpinning = false;
+
+        async function startCase() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const btn = document.getElementById('action-button');
+            const visual = document.getElementById('case-visual');
+            const windowEl = document.getElementById('roller-window');
+            const content = document.getElementById('roller-content');
+            const msg = document.getElementById('result-message');
+
+            btn.disabled = true;
+            btn.innerText = 'Выбираем приз...';
+            msg.innerText = '';
+            visual.style.display = 'none';
+            windowEl.style.display = 'block';
+
+            let serverData = null;
+
+            try {
+                const response = await fetch('/api/spin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: tg.initDataUnsafe?.user?.id || 'test_user' })
+                });
+                serverData = await response.json();
+            } catch (e) {
+                serverData = {
+                    prize: { name: '1 час', icon: '⏰', rarity: 'uncommon' },
+                    promo: 'TEST-PROMO'
+                };
+            }
+
+            const winningPrize = serverData.prize;
+
+            content.innerHTML = '';
+            for (let i = 0; i < 40; i++) {
+                const randomTemplate = allPrizesList[Math.floor(Math.random() * allPrizesList.length)];
+                const p = (i === 30) ? winningPrize : randomTemplate;
+                
+                const div = document.createElement('div');
+                div.className = `prize-item prize-${p.rarity}`;
+                div.innerHTML = `<div>${p.icon}</div><div>${p.name}</div>`;
+                content.appendChild(div);
+            }
+
+            content.style.transition = 'none';
+            content.style.left = '0px';
+
+            const targetLeft = -(30 * 100 - 150 + 50);
+
+            setTimeout(() => {
+                content.style.transition = 'left 4s cubic-bezier(0.1, 0.8, 0.2, 1)';
+                content.style.left = `${targetLeft}px`;
+            }, 50);
+
+            setTimeout(() => {
+                isSpinning = false;
+                btn.innerText = 'Ещё раз';
+                btn.disabled = false;
+                msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Промокод: <span style="color: #ff1744">${serverData.promo}</span>`;
+            }, 4100);
+        }
+    </script>
+</body>
+</html>
