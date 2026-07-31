@@ -27,11 +27,11 @@ async function initDB() {
         )
     `);
 
-    // Миграция: если колонка is_banned отсутствует в старой таблице, добавляем её
+    // Миграция: если колонка is_banned отсутствует, добавляем её
     try {
         await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
     } catch (e) {
-        // Колонка уже существует, игнорируем ошибку
+        // Колонка уже существует
     }
 
     await db.execute(`
@@ -315,7 +315,7 @@ app.post('/api/admin/delete-prize', async (req, res) => {
     }
 });
 
-// Статистика (поддерживаем разные ключи для фронтенда, чтобы не было undefined)
+// Статистика с дублированием ключей под возможные форматы фронтенда
 app.get('/api/admin/stats', async (req, res) => {
     try {
         const { userId, username } = req.query;
@@ -334,7 +334,6 @@ app.get('/api/admin/stats', async (req, res) => {
             totalSpins,
             totalUsers,
             bannedUsers,
-            // Дублируем ключи под возможные варианты фронтенда
             spinsCount: totalSpins,
             usersCount: totalUsers,
             bannedCount: bannedUsers
@@ -370,6 +369,7 @@ app.get('/api/admin/users-list', async (req, res) => {
     }
 });
 
+// Бан / Разбан (поиск по имени пользователя без привязки к несуществующим колонкам)
 app.post('/api/admin/ban', async (req, res) => {
     try {
         const { userId, username, targetUsername, banState } = req.body;
@@ -379,8 +379,8 @@ app.post('/api/admin/ban', async (req, res) => {
         const cleanTarget = targetUsername.replace('@', '').trim();
 
         await db.execute({
-            sql: `UPDATE users SET is_banned = ? WHERE username = ? OR id = ?`,
-            args: [banState, cleanTarget, cleanTarget]
+            sql: `UPDATE users SET is_banned = ? WHERE LOWER(username) = LOWER(?) OR LOWER(username) = LOWER(?)`,
+            args: [banState, cleanTarget, `@${cleanTarget}`]
         });
 
         res.json({ success: true });
@@ -389,6 +389,7 @@ app.post('/api/admin/ban', async (req, res) => {
     }
 });
 
+// Сброс таймера
 app.post('/api/admin/reset-timer', async (req, res) => {
     try {
         const { userId, username, targetUsername } = req.body;
@@ -398,8 +399,8 @@ app.post('/api/admin/reset-timer', async (req, res) => {
         const cleanTarget = targetUsername.replace('@', '').trim();
 
         await db.execute({
-            sql: `UPDATE users SET last_spin = NULL WHERE username = ? OR id = ?`,
-            args: [cleanTarget, cleanTarget]
+            sql: `UPDATE users SET last_spin = NULL WHERE LOWER(username) = LOWER(?) OR LOWER(username) = LOWER(?)`,
+            args: [cleanTarget, `@${cleanTarget}`]
         });
 
         res.json({ success: true });
