@@ -70,9 +70,12 @@ app.get('/api/status', async (req, res) => {
     const { userId, username } = req.query;
     if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
+    const cleanUsername = username ? username.replace('@', '').toLowerCase() : '';
+    if (!cleanUsername) return res.status(400).json({ error: 'Missing username' });
+
     let userRes = await db.execute({
-      sql: `SELECT * FROM users WHERE id = ?`,
-      args: [String(userId)]
+      sql: `SELECT * FROM users WHERE username = ?`,
+      args: [cleanUsername]
     });
 
     let user = userRes.rows[0];
@@ -80,13 +83,14 @@ app.get('/api/status', async (req, res) => {
     if (!user) {
       await db.execute({
         sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, NULL, 0)`,
-        args: [String(userId), username || '']
+        args: [String(userId), cleanUsername]
       });
-      user = { id: String(userId), username: username || '', last_spin: null, is_banned: 0 };
-    } else if (username && user.username !== username) {
+      user = { id: String(userId), username: cleanUsername, last_spin: null, is_banned: 0 };
+    } else {
+      // Обновляем id на актуальный при входе
       await db.execute({
-        sql: `UPDATE users SET username = ? WHERE id = ?`,
-        args: [username, String(userId)]
+        sql: `UPDATE users SET id = ? WHERE username = ?`,
+        args: [String(userId), cleanUsername]
       });
     }
 
@@ -138,11 +142,12 @@ app.get('/api/admin/check', async (req, res) => {
 app.post('/api/spin', async (req, res) => {
   try {
     const { userId, username } = req.body;
-    if (!userId) return res.status(400).json({ error: 'Missing userId' });
+    const cleanUsername = username ? username.replace('@', '').toLowerCase() : '';
+    if (!cleanUsername) return res.status(400).json({ error: 'Missing username' });
 
     const userRes = await db.execute({
-      sql: `SELECT * FROM users WHERE id = ?`,
-      args: [String(userId)]
+      sql: `SELECT * FROM users WHERE username = ?`,
+      args: [cleanUsername]
     });
 
     const user = userRes.rows[0];
@@ -179,8 +184,8 @@ app.post('/api/spin', async (req, res) => {
     const nowIso = new Date().toISOString();
 
     await db.execute({
-      sql: `UPDATE users SET last_spin = ? WHERE id = ?`,
-      args: [nowIso, String(userId)]
+      sql: `UPDATE users SET last_spin = ? WHERE username = ?`,
+      args: [nowIso, cleanUsername]
     });
 
     await db.execute({
@@ -202,7 +207,6 @@ app.post('/api/spin', async (req, res) => {
   }
 });
 
-// Получение инвентаря с автоматической очисткой призов старше 48 часов
 app.get('/api/inventory', async (req, res) => {
   try {
     const { userId } = req.query;
@@ -221,13 +225,11 @@ app.get('/api/inventory', async (req, res) => {
       const diffHours = (now - wonAt) / (1000 * 60 * 60);
 
       if (diffHours >= 48) {
-        // Удаляем просроченный приз из базы Turso
         await db.execute({
           sql: `DELETE FROM inventory WHERE id = ?`,
           args: [item.id]
         });
       } else {
-        // Добавляем оставшееся время в часах для отображения
         validItems.push({
           ...item,
           hoursLeft: Math.ceil(48 - diffHours)
@@ -316,7 +318,7 @@ app.get('/api/admin/banned-list', async (req, res) => {
 
 app.get('/api/admin/users-list', async (req, res) => {
   try {
-    const users = await db.execute(`SELECT id, username, is_banned FROM users`);
+    const users = await db.execute(`SELECT username, is_banned FROM users`);
     res.json({ users: users.rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -328,8 +330,22 @@ app.post('/api/admin/ban', async (req, res) => {
     const { targetUsername, banState } = req.body;
     const cleanUser = targetUsername.replace('@', '').toLowerCase();
     await db.execute({
-      sql: `UPDATE users SET is_banned = ? WHERE LOWER(username) = ? OR id = ?`,
-      args: [Number(banState), cleanUser, targetUsername]
+      sql: `UPDATE users SET is_banned = ? WHERE LOWER(username) = ?`,
+      args: [Number(banState), cleanUser]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/delete-user', async (req, res) => {
+  try {
+    const { targetUsername } = req.body;
+    const cleanUser = targetUsername.replace('@', '').toLowerCase();
+    await db.execute({
+      sql: `DELETE FROM users WHERE LOWER(username) = ?`,
+      args: [cleanUser]
     });
     res.json({ success: true });
   } catch (e) {
@@ -342,8 +358,8 @@ app.post('/api/admin/reset-timer', async (req, res) => {
     const { targetUsername } = req.body;
     const cleanUser = targetUsername.replace('@', '').toLowerCase();
     await db.execute({
-      sql: `UPDATE users SET last_spin = NULL WHERE LOWER(username) = ? OR id = ?`,
-      args: [cleanUser, targetUsername]
+      sql: `UPDATE users SET last_spin = NULL WHERE LOWER(username) = ?`,
+      args: [cleanUser]
     });
     res.json({ success: true });
   } catch (e) {
@@ -366,20 +382,6 @@ app.post('/api/admin/add-admin', async (req, res) => {
     const cleanUser = newAdminUsername.replace('@', '').toLowerCase();
     await db.execute({
       sql: `INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, 0)`,
-      args: [cleanUser]
-    });
-    res.json({ success: true });
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-});
-
-app.post('/api/admin/remove-admin', async (req, res) => {
-  try {
-    const { targetAdminUsername } = req.body;
-    const cleanUser = targetAdminUsername.replace('@', '').toLowerCase();
-    await db.execute({
-      sql: `DELETE FROM admins WHERE LOWER(username) = ?`,
       args: [cleanUser]
     });
     res.json({ success: true });
