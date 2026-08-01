@@ -120,13 +120,23 @@ app.get('/api/status', async (req, res) => {
     let nextSpinTime = '';
 
     if (user.last_spin) {
-      const lastSpinDate = new Date(user.last_spin);
-      const nextAllowedDate = new Date(lastSpinDate.getTime() + 24 * 60 * 60 * 1000);
-      const now = new Date();
+      const lastSpinTime = new Date(user.last_spin).getTime();
+      const now = Date.now();
+      const cooldownTime = 24 * 60 * 60 * 1000; // Ровно 24 часа в миллисекундах
+      const timePassed = now - lastSpinTime;
 
-      if (now < nextAllowedDate) {
+      if (timePassed < cooldownTime) {
         canSpin = false;
-        nextSpinTime = nextAllowedDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+        const timeLeft = cooldownTime - timePassed;
+        
+        const hoursLeft = Math.floor(timeLeft / (1000 * 60 * 60));
+        const minutesLeft = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+        
+        if (hoursLeft > 0) {
+          nextSpinTime = `${hoursLeft} ч ${minutesLeft} мин`;
+        } else {
+          nextSpinTime = `${minutesLeft} мин`;
+        }
       }
     }
 
@@ -165,9 +175,11 @@ app.post('/api/spin', async (req, res) => {
     }
 
     if (user && user.last_spin) {
-      const lastSpinDate = new Date(user.last_spin);
-      const nextAllowedDate = new Date(lastSpinDate.getTime() + 24 * 60 * 60 * 1000);
-      if (new Date() < nextAllowedDate) {
+      const lastSpinTime = new Date(user.last_spin).getTime();
+      const now = Date.now();
+      const cooldownTime = 24 * 60 * 60 * 1000;
+      
+      if ((now - lastSpinTime) < cooldownTime) {
         return res.status(400).json({ error: 'Кейс можно открывать раз в 24 часа' });
       }
     }
