@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public'))); // Убедитесь, что файлы лежат в папке public или в корне
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Подключение к Turso / SQLite
 const db = createClient({
@@ -17,6 +17,7 @@ const db = createClient({
 });
 
 async function initDb() {
+    // Создаем только базовые таблицы пользователей, призов и инвентаря, не трогая старые структуры
     await db.execute(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT,
@@ -40,28 +41,17 @@ async function initDb() {
         promo_code TEXT,
         won_at INTEGER
     )`);
-
-    await db.execute(`CREATE TABLE IF NOT EXISTS admins (
-        id TEXT PRIMARY KEY,
-        is_super INTEGER DEFAULT 0
-    )`);
-
-    // Добавляем супер-админа по умолчанию (укажите ваш Telegram ID)
-    await db.execute({
-        sql: `INSERT OR IGNORE INTO admins (id, is_super) VALUES (?, 1)`,
-        args: ["ропогку" /* или ваш числовой ID */]
-    });
 }
 initDb();
+
+// Список Telegram ID администраторов (впишите сюда ваши ID через запятую)
+const ADMIN_IDS = ["123456789", "ропогку"]; 
 
 // Эндпоинт статуса
 app.get('/api/status', async (req, res) => {
     try {
         const userId = req.query.userId;
-        
-        // Проверяем, админ ли юзер (замените на ваш реальный Telegram ID числом)
-        const superAdminId = "123456789"; // <--- Впишите сюда ваш Telegram ID
-        const isAdmin = userId === superAdminId;
+        const isAdmin = ADMIN_IDS.includes(String(userId));
 
         let userRes = await db.execute({
             sql: `SELECT * FROM users WHERE id = ?`,
@@ -83,11 +73,9 @@ app.get('/api/status', async (req, res) => {
             }
         }
 
-        // Получаем призы
         let prizesRes = await db.execute(`SELECT * FROM prizes`);
         let prizes = prizesRes.rows;
 
-        // Если призов в базе нет, создадим базовые для теста
         if (prizes.length === 0) {
             await db.execute(`INSERT INTO prizes (name, description, icon, weight, rarity) VALUES ('Апгрейд до VIP', 'Випка по цене общего зала', '🎮', 50, 'common')`);
             await db.execute(`INSERT INTO prizes (name, description, icon, weight, rarity) VALUES ('Скидка 10%', 'Действует на следующий визит', '%', 30, 'uncommon')`);
@@ -125,7 +113,6 @@ app.post('/api/spin', async (req, res) => {
         const { userId } = req.body;
         const now = Date.now();
 
-        // Проверяем пользователя
         let userRes = await db.execute({ sql: `SELECT * FROM users WHERE id = ?`, args: [userId] });
         
         if (userRes.rows.length > 0) {
@@ -136,7 +123,6 @@ app.post('/api/spin', async (req, res) => {
             }
         }
 
-        // Выбираем приз по весу
         let prizesRes = await db.execute(`SELECT * FROM prizes`);
         let prizes = prizesRes.rows;
         let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
@@ -154,7 +140,6 @@ app.post('/api/spin', async (req, res) => {
 
         const promoCode = 'CYBER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
-        // Сохраняем результат
         await db.execute({
             sql: `INSERT INTO users (id, last_spin, is_banned) VALUES (?, ?, 0) ON CONFLICT(id) DO UPDATE SET last_spin = ?`,
             args: [userId, now, now]
@@ -169,6 +154,37 @@ app.post('/api/spin', async (req, res) => {
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
+    }
+});
+
+// Админские действия
+app.post('/api/admin/action', async (req, res) => {
+    try {
+        const { adminId, targetId, actionType } = req.body;
+        if (!ADMIN_IDS.includes(String(adminId))) {
+            return res.status(403).json({ message: 'Доступ запрещен' });
+        }
+
+        if (actionType === 'reset') {
+            await db.execute({
+                sql: `UPDATE users SET last_spin = NULL WHERE id = ?`,
+                args: [targetId]
+            });
+            res.json({ message: 'Таймер успешно сброшен!' });
+        } else if (actionType === 'ban') {
+            let userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE id = ?`, args: [targetId] });
+            let newBanState = 1;
+            if (userRes.rows.length > 0 && userRes.rows[0].is_banned === 1) {
+                newBanState = 0;
+            }
+            await db.execute({
+                sql: `INSERT INTO users (id, is_banned) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET is_banned = ?`,
+                args: [targetId, newBanState, newBanState]
+            });
+            res.json({ message: newBanState === 1 ? 'Пользователь забанен' : 'Пользователь разбанен' });
+        }
+    } catch (e) {
+        res.status(500).json({ message: e.message });
     }
 });
 
