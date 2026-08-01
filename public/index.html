@@ -2,607 +2,349 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Кибер-Рулетка</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RUSHB - Бесплатная рулетка</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="config.js"></script>
     <style>
-        :root {
-            --primary: #a3ff00;
-            --bg: #0f0f11;
-            --card-bg: #18181b;
-            --text-main: #ffffff;
-            --text-muted: #71717a;
-            --border-color: #27272a;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0f1015; color: #ffffff; display: flex; flex-direction: column; min-height: 100vh; align-items: center; padding: 20px; }
+        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; flex: 1; }
+        
+        h1 { color: #ccff00; font-size: 28px; text-transform: uppercase; margin-bottom: 5px; text-align: center; }
+        .subtitle { color: #8a8d98; font-size: 12px; text-transform: uppercase; margin-bottom: 25px; text-align: center; letter-spacing: 1px; }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+        #admin-panel { width: 100%; background: #1a1c23; border: 1px solid #ccff00; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: none; }
+        #admin-panel h3 { color: #ccff00; font-size: 14px; margin-bottom: 10px; }
+        .admin-section { margin-bottom: 12px; font-size: 12px; }
+        .admin-section input { width: 100%; background: #0f1015; border: 1px solid #333; color: #fff; padding: 8px; border-radius: 6px; font-size: 12px; margin-bottom: 6px; }
+        .admin-btns { display: flex; gap: 6px; }
+        .admin-btn { flex: 1; background: #ccff00; color: #000; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; text-align: center; }
+        .admin-btn.ban { background: #ff4747; color: #fff; }
+        .admin-btn.danger { background: #b30000; color: #fff; }
+        
+        .lists-box { max-height: 150px; overflow-y: auto; background: #0f1015; border: 1px solid #333; border-radius: 6px; padding: 8px; font-size: 11px; margin-top: 5px; }
+        .list-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #222; }
 
-        body {
-            background-color: var(--bg);
-            color: var(--text-main);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            padding: 16px;
-            overflow-x: hidden;
-        }
+        .roulette-box { width: 100%; background: #161821; border: 1px solid #2a2d3d; border-radius: 16px; padding: 20px; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 20px; height: 160px; overflow: hidden; }
+        .pointer-top, .pointer-bottom { position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; z-index: 10; }
+        .pointer-top { top: 8px; border-top: 10px solid #ccff00; }
+        .pointer-bottom { bottom: 8px; border-bottom: 10px solid #ccff00; }
+        
+        .items-track { display: flex; gap: 10px; position: absolute; transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1); }
+        .item-card { min-width: 100px; height: 110px; background: #1f222e; border: 1px solid #2f3347; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
+        .item-icon { font-size: 28px; margin-bottom: 8px; }
+        .item-name { font-size: 12px; font-weight: 600; color: #fff; }
 
-        .container {
-            width: 100%;
-            max-width: 400px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-        }
+        .spin-btn { width: 100%; background: #ccff00; color: #000; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; text-transform: uppercase; cursor: pointer; margin-bottom: 10px; transition: opacity 0.2s; }
+        .spin-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+        .cooldown-text { font-size: 11px; color: #8a8d98; text-align: center; margin-bottom: 25px; }
 
-        /* Шапка с кнопкой админки */
-        .header-nav {
-            width: 100%;
-            display: flex;
-            justify-content: flex-start;
-            margin-bottom: 10px;
-        }
+        .tabs { display: flex; width: 100%; background: #161821; border-radius: 14px; padding: 4px; margin-top: auto; border: 1px solid #2a2d3d; }
+        .tab { flex: 1; text-align: center; padding: 12px; font-size: 13px; font-weight: 600; color: #8a8d98; cursor: pointer; border-radius: 10px; transition: 0.2s; }
+        .tab.active { background: #1f222e; color: #ccff00; }
 
-        .admin-btn {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-size: 13px;
-            cursor: pointer;
-            display: none;
-            transition: 0.2s;
-        }
-
-        .admin-btn:active {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        /* Логотип и подзаголовок */
-        .logo-container {
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        .club-logo-text {
-            font-size: 32px;
-            font-weight: 800;
-            letter-spacing: -0.5px;
-            color: var(--primary);
-            text-transform: uppercase;
-        }
-
-        .club-logo-img {
-            max-height: 40px;
-            object-fit: contain;
-        }
-
-        .subtitle {
-            font-size: 11px;
-            font-weight: 700;
-            color: var(--text-muted);
-            letter-spacing: 1.5px;
-            margin-top: 4px;
-            text-transform: uppercase;
-        }
-
-        /* Рулетка */
-        .roulette-wrapper {
-            position: relative;
-            width: 100%;
-            height: 160px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            overflow: hidden;
-            display: flex;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        /* Стрелочки-указатели */
-        .pointer-top, .pointer-bottom {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 0;
-            height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            z-index: 10;
-        }
-
-        .pointer-top {
-            top: 10px;
-            border-bottom: 8px solid var(--primary);
-        }
-
-        .pointer-bottom {
-            bottom: 10px;
-            border-top: 8px solid var(--primary);
-        }
-
-        .items-track {
-            display: flex;
-            position: absolute;
-            will-change: transform;
-            transition: transform 4s cubic-bezier(0.15, 0.85, 0.15, 1);
-        }
-
-        .prize-card {
-            min-width: 130px;
-            height: 130px;
-            margin: 0 8px;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 12px;
-            text-align: center;
-        }
-
-        .prize-card.highlight {
-            border-color: var(--primary);
-            box-shadow: 0 0 15px rgba(163, 255, 0, 0.15);
-        }
-
-        .prize-icon {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-
-        .prize-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 4px;
-            line-height: 1.2;
-        }
-
-        .prize-desc {
-            font-size: 10px;
-            color: var(--text-muted);
-            line-height: 1.1;
-        }
-
-        /* Главная кнопка */
-        .spin-btn {
-            width: 100%;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            font-size: 18px;
-            font-weight: 800;
-            padding: 18px;
-            border-radius: 16px;
-            cursor: pointer;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: 0.2s;
-            margin-bottom: 8px;
-        }
-
-        .spin-btn:not(:disabled):hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .spin-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .cooldown-info {
-            font-size: 11px;
-            color: var(--text-muted);
-            text-align: center;
-            margin-bottom: 24px;
-        }
-
-        /* Нижнее переключение (Рулетка / Инвентарь) */
-        .nav-tabs {
-            display: flex;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 4px;
-            width: 100%;
-            margin-top: auto;
-            margin-bottom: 10px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            font-size: 13px;
-            font-weight: 600;
-            padding: 12px;
-            border-radius: 12px;
-            cursor: pointer;
-            transition: 0.2s;
-            text-align: center;
-        }
-
-        .tab-btn.active {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--primary);
-            font-weight: 700;
-        }
-
-        /* Контентные секции */
-        .section {
-            display: none;
-            width: 100%;
-            flex: 1;
-            flex-direction: column;
-        }
-
-        .section.active {
-            display: flex;
-        }
-
-        /* Инвентарь */
-        .inventory-list {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            overflow-y: auto;
-            max-height: 60vh;
-            padding-right: 4px;
-        }
-
-        .inventory-item {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 14px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .inv-info h4 {
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 4px;
-        }
-
-        .inv-info p {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .promo-code {
-            background: rgba(163, 255, 0, 0.1);
-            border: 1px dashed var(--primary);
-            color: var(--primary);
-            padding: 6px 10px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 13px;
-            font-weight: bold;
-        }
-
-        .empty-inv {
-            text-align: center;
-            color: var(--text-muted);
-            margin-top: 40px;
-            font-size: 13px;
-        }
-
-        /* Экран блокировки */
-        #banned-screen {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg);
-            z-index: 1000;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            padding: 20px;
-        }
-        #banned-screen h2 { color: #ff453a; margin-bottom: 10px; }
-        #banned-screen p { color: var(--text-muted); font-size: 13px; }
-
-        /* Админ панель */
-        .admin-panel {
-            display: none;
-            width: 100%;
-            flex-direction: column;
-            gap: 12px;
-        }
-        .admin-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 4px;
-        }
-        .admin-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 13px;
-        }
-        .admin-card input {
-            width: 100%;
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            color: #fff;
-            padding: 8px;
-            border-radius: 6px;
-            margin-top: 6px;
-            margin-bottom: 10px;
-        }
-        .admin-btn-action {
-            background: var(--primary);
-            color: #000;
-            border: none;
-            font-weight: bold;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
+        .view-section { width: 100%; display: none; flex-direction: column; gap: 10px; flex: 1; }
+        .view-section.active { display: flex; }
+        .inventory-item { background: #161821; border: 1px solid #2a2d3d; border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; }
+        .inv-info { display: flex; align-items: center; gap: 12px; }
+        .inv-icon { font-size: 24px; }
+        .inv-name { font-size: 13px; font-weight: bold; }
+        .inv-code { font-size: 11px; color: #ccff00; background: #0f1015; padding: 4px 8px; border-radius: 6px; font-family: monospace; }
+        
+        .footer-bot { font-size: 11px; color: #555868; margin-top: 15px; text-align: center; }
     </style>
 </head>
 <body>
 
-    <div id="banned-screen">
-        <h2>Доступ ограничен</h2>
-        <p>Ваш аккаунт заблокирован администрацией клуба.</p>
-    </div>
+<div class="container">
+    <div id="roulette-view" class="view-section active">
+        <h1>RUSHB</h1>
+        <div class="subtitle">Бесплатная рулетка</div>
 
-    <div class="container">
-        <!-- Шапка -->
-        <div class="header-nav">
-            <button class="admin-btn" id="adminToggleBtn" onclick="toggleAdminPanel()">← Админка</button>
-        </div>
-
-        <!-- Логотип -->
-        <div class="logo-container">
-            <div id="logoWrapper">
-                <!-- Заполняется из конфига -->
-            </div>
-            <div class="subtitle" id="subTitleText">БЕСПЛАТНАЯ РУЛЕТКА</div>
-        </div>
-
-        <!-- СЕКЦИЯ РУЛЕТКИ -->
-        <div id="rouletteSection" class="section active">
-            <div class="roulette-wrapper">
-                <div class="pointer-top"></div>
-                <div class="pointer-bottom"></div>
-                <div class="items-track" id="itemsTrack">
-                    <!-- Элементы генерируются скриптом -->
+        <div id="admin-panel">
+            <h3>Панель администратора</h3>
+            
+            <div class="admin-section">
+                <strong>Администраторы:</strong>
+                <div class="lists-box" id="admins-list">Загрузка...</div>
+                <div style="display: flex; gap: 6px; margin-top: 6px;">
+                    <input type="text" id="admin-username-input" placeholder="Юзернейм (например: ropogku)" style="margin-bottom:0;">
+                    <button class="admin-btn" onclick="modifyAdmin('add_admin')">Добавить</button>
+                    <button class="admin-btn danger" onclick="modifyAdmin('remove_admin')">Удалить</button>
                 </div>
             </div>
 
-            <button class="spin-btn" id="spinBtn" onclick="spinWheel()">КРУТИМ...</button>
-            <div class="cooldown-info" id="cooldownText">1 бесплатный прокрут каждые 24 часа</div>
-        </div>
-
-        <!-- СЕКЦИЯ ИНВЕНТАРЯ -->
-        <div id="inventorySection" class="section">
-            <div class="inventory-list" id="inventoryList">
-                <div class="empty-inv">Загрузка инвентаря...</div>
+            <div class="admin-section" style="margin-bottom: 0;">
+                <strong>Пользователи (сброс таймера / бан):</strong>
+                <div class="lists-box" id="users-list">Загрузка...</div>
             </div>
         </div>
 
-        <!-- СЕКЦИЯ АДМИНКИ -->
-        <div id="adminSection" class="section">
-            <div class="admin-title">Панель управления</div>
-            <div class="admin-card">
-                <p>Управление пользователем (Бан / Сброс таймера)</p>
-                <input type="text" id="targetUserId" placeholder="Telegram ID юзера">
-                <button class="admin-btn-action" onclick="adminAction('reset')">Сбросить таймер</button>
-                <button class="admin-btn-action" style="background:#ff453a; color:#fff; margin-left: 6px;" onclick="adminAction('ban')">Бан/Разбан</button>
-            </div>
+        <div class="roulette-box">
+            <div class="pointer-top"></div>
+            <div class="pointer-bottom"></div>
+            <div class="items-track" id="track"></div>
         </div>
 
-        <!-- Нижнее меню -->
-        <div class="nav-tabs" id="mainNavTabs">
-            <button class="tab-btn active" onclick="switchTab('roulette', this)">Рулетка</button>
-            <button class="tab-btn" onclick="switchTab('inventory', this)">Инвентарь</button>
+        <button id="spin-button" class="spin-btn" onclick="spinWheel()">КРУТИМ...</button>
+        <div class="cooldown-text">1 бесплатный прокрут каждые 24 часа</div>
+    </div>
+
+    <div id="inventory-view" class="view-section">
+        <h1>Инвентарь</h1>
+        <div class="subtitle">Ваши выигранные призы</div>
+        <div id="inventory-list" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+            <div style="text-align: center; color: #666; margin-top: 40px;">Загрузка...</div>
         </div>
     </div>
 
-    <script>
-        // Применение конфига
-        if (window.APP_CONFIG) {
-            document.documentElement.style.setProperty('--primary', window.APP_CONFIG.primaryColor);
-            document.documentElement.style.setProperty('--bg', window.APP_CONFIG.bgDark);
-            document.documentElement.style.setProperty('--card-bg', window.APP_CONFIG.cardBg);
-            
-            const logoWrapper = document.getElementById('logoWrapper');
-            if (window.APP_CONFIG.logoUrl) {
-                logoWrapper.innerHTML = `<img src="${window.APP_CONFIG.logoUrl}" class="club-logo-img" alt="Logo">`;
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('roulette')">Рулетка</div>
+        <div class="tab" onclick="switchTab('inventory')">Инвентарь</div>
+    </div>
+
+    <div class="footer-bot">@cyber_fdsafdasdfasfa_bot</div>
+</div>
+
+<script>
+    const tg = window.Telegram?.WebApp;
+    if (tg) tg.expand();
+
+    const userId = tg?.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : "123456789";
+    const username = tg?.initDataUnsafe?.user?.username || "ropogku";
+
+    let prizes = [];
+    let nextSpinTimestamp = 0;
+    let timerInterval = null;
+    let isSpinning = false;
+
+    async function initApp() {
+        try {
+            const res = await fetch(`/api/status?userId=${userId}&username=${username}`);
+            const data = await res.json();
+
+            prizes = data.prizes;
+            renderTrack(prizes);
+
+            if (data.isAdmin) {
+                document.getElementById('admin-panel').style.display = 'block';
+                loadAdminData();
+            }
+
+            if (data.nextSpinTime && data.nextSpinTime > Date.now()) {
+                nextSpinTimestamp = data.nextSpinTime;
+                startTimer();
             } else {
-                logoWrapper.innerHTML = `<div class="club-logo-text">${window.APP_CONFIG.clubName}</div>`;
+                setSpinButtonState(true, "КРУТИМ...");
+            }
+        } catch (e) {
+            console.error("Ошибка загрузки:", e);
+        }
+    }
+
+    async function loadAdminData() {
+        try {
+            const res = await fetch(`/api/admin/data?adminId=${userId}&adminUsername=${username}`);
+            const data = await res.json();
+            if (!res.ok) return;
+
+            const adminsContainer = document.getElementById('admins-list');
+            adminsContainer.innerHTML = data.admins.map(adm => `<div class="list-row"><span>@${adm}</span></div>`).join('');
+
+            const usersContainer = document.getElementById('users-list');
+            if (data.users.length === 0) {
+                usersContainer.innerHTML = '<div style="padding: 4px; color: #666;">Нет пользователей</div>';
+                return;
             }
 
-            document.getElementById('subTitleText').innerText = window.APP_CONFIG.subtitle;
-            document.getElementById('spinBtn').innerText = window.APP_CONFIG.spinButtonText;
-            document.getElementById('cooldownText').innerText = window.APP_CONFIG.cooldownText;
+            usersContainer.innerHTML = data.users.map(u => `
+                <div class="list-row">
+                    <div>
+                        <b>@${u.username || 'без юзернейма'}</b> <span style="color:#777; font-size:10px;">(${u.id})</span>
+                        ${u.is_banned ? '<span style="color:red">[Бан]</span>' : ''}
+                    </div>
+                    <div style="display:flex; gap:4px;">
+                        <button class="admin-btn" style="padding: 2px 6px; font-size: 10px;" onclick="userAction('${u.id}', '${u.username || ''}', 'reset')">Сброс</button>
+                        <button class="admin-btn ban" style="padding: 2px 6px; font-size: 10px;" onclick="userAction('${u.id}', '${u.username || ''}', 'ban')">${u.is_banned ? 'Разбан' : 'Бан'}</button>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            console.error("Ошибка загрузки админ-данных", e);
+        }
+    }
+
+    async function modifyAdmin(actionType) {
+        const targetUsername = document.getElementById('admin-username-input').value.trim();
+        if (!targetUsername) {
+            alert('Введите юзернейм');
+            return;
         }
 
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-
-        let user = tg.initDataUnsafe?.user || { id: 12345678, first_name: "TestUser" };
-        let allPrizes = [];
-        let isAdmin = false;
-
-        async function initApp() {
-            try {
-                let res = await fetch(`/api/status?userId=${user.id}`);
-                let data = await res.json();
-
-                if (data.isBanned) {
-                    document.getElementById('banned-screen').style.display = 'flex';
-                    return;
-                }
-
-                if (data.isAdmin) {
-                    isAdmin = true;
-                    document.getElementById('adminToggleBtn').style.display = 'block';
-                }
-
-                allPrizes = data.prizes;
-                buildTrack(allPrizes);
-
-                if (data.hoursLeft > 0) {
-                    lockSpinButton(data.hoursLeft);
-                }
-            } catch (e) {
-                console.error(e);
+        try {
+            const res = await fetch('/api/admin/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: userId, adminUsername: username, targetUsername, actionType })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (res.ok) {
+                document.getElementById('admin-username-input').value = '';
+                loadAdminData();
             }
+        } catch (e) {
+            alert('Ошибка запроса');
         }
+    }
 
-        function buildTrack(prizes) {
-            const track = document.getElementById('itemsTrack');
-            let html = '';
-            // Создаем длинную ленту для прокрутки
-            let extended = [];
-            for(let i=0; i<5; i++) extended = extended.concat(prizes);
+    async function userAction(targetId, targetUsername, actionType) {
+        try {
+            const res = await fetch('/api/admin/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: userId, adminUsername: username, targetId, targetUsername, actionType })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (res.ok) loadAdminData();
+        } catch (e) {
+            alert('Ошибка запроса');
+        }
+    }
 
-            extended.forEach(p => {
-                html += `
-                    <div class="prize-card">
-                        <div class="prize-icon">${p.icon || '🎁'}</div>
-                        <div class="prize-title">${p.name}</div>
-                        <div class="prize-desc">${p.description || ''}</div>
+    function renderTrack(items) {
+        const track = document.getElementById('track');
+        track.innerHTML = '';
+        const fullList = [...items, ...items, ...items, ...items];
+        fullList.forEach(p => {
+            track.innerHTML += `
+                <div class="item-card">
+                    <div class="item-icon">${p.icon}</div>
+                    <div class="item-name">${p.name}</div>
+                </div>
+            `;
+        });
+    }
+
+    function startTimer() {
+        const spinBtn = document.getElementById('spin-button');
+        spinBtn.disabled = true;
+
+        if (timerInterval) clearInterval(timerInterval);
+
+        timerInterval = setInterval(() => {
+            const diff = nextSpinTimestamp - Date.now();
+            if (diff <= 0) {
+                clearInterval(timerInterval);
+                setSpinButtonState(true, "КРУТИМ...");
+                return;
+            }
+
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            spinBtn.innerText = `Ждите: ${hours}ч ${minutes}м ${seconds}с`;
+        }, 1000);
+    }
+
+    function setSpinButtonState(active, text) {
+        const spinBtn = document.getElementById('spin-button');
+        spinBtn.disabled = !active;
+        spinBtn.innerText = text;
+    }
+
+    async function spinWheel() {
+        if (isSpinning) return;
+        isSpinning = true;
+        setSpinButtonState(false, "РОЗЫГРЫШ...");
+
+        try {
+            const res = await fetch('/api/spin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username })
+            });
+            const data = await res.json();
+
+            if (!res.ok) {
+                alert(data.error || "Ошибка прокрутки");
+                isSpinning = false;
+                initApp();
+                return;
+            }
+
+            const track = document.getElementById('track');
+            const winningIndex = prizes.findIndex(p => p.id === data.prize.id);
+            const cardWidth = 110;
+            const offset = (winningIndex + prizes.length * 2) * cardWidth - 140;
+            
+            track.style.transition = 'transform 4s cubic-bezier(0.1, 0.7, 0.1, 1)';
+            track.style.transform = `translateX(-${offset}px)`;
+
+            setTimeout(() => {
+                alert(`Поздравляем! Вы выиграли: ${data.prize.name}\nПромокод: ${data.promoCode}`);
+                isSpinning = false;
+                location.reload();
+            }, 4200);
+
+        } catch (e) {
+            console.error(e);
+            isSpinning = false;
+            setSpinButtonState(true, "КРУТИМ...");
+        }
+    }
+
+    async function loadInventory() {
+        const listContainer = document.getElementById('inventory-list');
+        listContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Загрузка...</div>';
+
+        try {
+            const res = await fetch(`/api/inventory?userId=${userId}`);
+            const items = await res.json();
+
+            if (items.length === 0) {
+                listContainer.innerHTML = '<div style="text-align: center; color: #666; margin-top: 40px;">Инвентарь пуст</div>';
+                return;
+            }
+
+            listContainer.innerHTML = '';
+            items.forEach(item => {
+                listContainer.innerHTML += `
+                    <div class="inventory-item">
+                        <div class="inv-info">
+                            <div class="inv-icon">${item.icon}</div>
+                            <div>
+                                <div class="inv-name">${item.name}</div>
+                                <div style="font-size: 10px; color: #8a8d98; margin-top: 2px;">${new Date(item.won_at).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div class="inv-code">${item.promo_code}</div>
                     </div>
                 `;
             });
-            track.innerHTML = html;
+        } catch (e) {
+            listContainer.innerHTML = '<div style="text-align: center; color: #ff4747; margin-top: 40px;">Ошибка загрузки</div>';
         }
+    }
 
-        async function spinWheel() {
-            const btn = document.getElementById('spinBtn');
-            btn.disabled = true;
+    function switchTab(tabName) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
 
-            try {
-                let res = await fetch('/api/spin', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userId: user.id })
-                });
-                let data = await res.json();
-
-                if (!res.ok) {
-                    alert(data.error || 'Ошибка');
-                    btn.disabled = false;
-                    return;
-                }
-
-                // Анимация прокрутки к выигранному призу
-                const track = document.getElementById('itemsTrack');
-                const winningIndex = allPrizes.findIndex(p => p.id === data.prize.id);
-                const cardWidth = 146; // 130px width + 16px margins
-                // Крутим на несколько циклов вперед + нужный индекс
-                const targetOffset = -(cardWidth * (allPrizes.length * 2 + winningIndex) - 130);
-                
-                track.style.transition = 'transform 4s cubic-bezier(0.15, 0.85, 0.15, 1)';
-                track.style.transform = `translateX(${targetOffset}px)`;
-
-                setTimeout(() => {
-                    alert(`Поздравляем! Вы выиграли: ${data.prize.name}\nПромокод: ${data.promoCode}`);
-                    lockSpinButton(24);
-                    loadInventory();
-                }, 4100);
-
-            } catch (e) {
-                console.error(e);
-                btn.disabled = false;
-            }
+        if (tabName === 'roulette') {
+            document.querySelectorAll('.tab')[0].classList.add('active');
+            document.getElementById('roulette-view').classList.add('active');
+        } else {
+            document.querySelectorAll('.tab')[1].classList.add('active');
+            document.getElementById('inventory-view').classList.add('active');
+            loadInventory();
         }
+    }
 
-        function lockSpinButton(hours) {
-            const btn = document.getElementById('spinBtn');
-            btn.disabled = true;
-            btn.innerText = `КРУТИТЬ ЧЕРЕЗ ${Math.ceil(hours)}Ч`;
-        }
+    initApp();
+</script>
 
-        function switchTab(tabName, el) {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('adminToggleBtn').style.fontWeight = 'normal';
-
-            if (tabName === 'roulette') {
-                document.getElementById('rouletteSection').classList.add('active');
-            } else if (tabName === 'inventory') {
-                document.getElementById('inventorySection').classList.add('active');
-                loadInventory();
-            }
-            el.classList.add('active');
-        }
-
-        function toggleAdminPanel() {
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('adminSection').classList.add('active');
-            document.getElementById('adminToggleBtn').style.fontWeight = 'bold';
-        }
-
-        async function loadInventory() {
-            try {
-                let res = await fetch(`/api/inventory?userId=${user.id}`);
-                let items = await res.json();
-                const list = document.getElementById('inventoryList');
-
-                if (items.length === 0) {
-                    list.innerHTML = `<div class="empty-inv">У вас пока нет выигранных призов</div>`;
-                    return;
-                }
-
-                let html = '';
-                items.forEach(item => {
-                    html += `
-                        <div class="inventory-item">
-                            <div class="inv-info">
-                                <h4>${item.name}</h4>
-                                <p>Выиграно: ${new Date(item.won_at).toLocaleDateString()}</p>
-                            </div>
-                            <div class="promo-code">${item.promo_code}</div>
-                        </div>
-                    `;
-                });
-                list.innerHTML = html;
-            } catch (e) {
-                console.error(e);
-            }
-        }
-
-        async function adminAction(actionType) {
-            const targetId = document.getElementById('targetUserId').value;
-            if (!targetId) return alert('Введите ID пользователя');
-
-            let res = await fetch('/api/admin/action', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ adminId: user.id, targetId, actionType })
-            });
-            let data = await res.json();
-            alert(data.message || 'Готово');
-        }
-
-        initApp();
-    </script>
 </body>
 </html>
