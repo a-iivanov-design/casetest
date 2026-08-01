@@ -725,7 +725,8 @@
                 data.bannedUsers.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    card.innerHTML = `<div>@${u.username}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username}')">Разбан</button>`;
+                    const displayU = u.username && !u.username.startsWith('id_') ? (u.username.startsWith('@') ? u.username : '@' + u.username) : '@user_' + u.id;
+                    card.innerHTML = `<div>${displayU}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username || u.id}')">Разбан</button>`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
@@ -740,7 +741,14 @@
                 data.users.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    card.innerHTML = `<div>@${u.username || u.id}</div><button onclick="document.getElementById('ban-username').value='${u.username || u.id}'; switchAdminSub('ban');">Управлять</button>`;
+                    let rawName = u.username || u.id;
+                    let displayU;
+                    if (rawName && !String(rawName).startsWith('id_') && isNaN(rawName)) {
+                        displayU = String(rawName).startsWith('@' ) ? rawName : '@' + rawName;
+                    } else {
+                        displayU = '@user_' + u.id;
+                    }
+                    card.innerHTML = `<div>${displayU}</div><button onclick="document.getElementById('ban-username').value='${displayU.replace('@', '')}'; switchAdminSub('ban');">Управлять</button>`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
@@ -756,7 +764,8 @@
                 data.admins.forEach(adm => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>`;
+                    const displayU = adm.username && !adm.username.startsWith('id_') ? (adm.username.startsWith('@') ? adm.username : '@' + adm.username) : '@user_' + adm.id;
+                    card.innerHTML = `<div>${displayU} ${adm.is_super ? '(Супер)' : ''}</div>`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
