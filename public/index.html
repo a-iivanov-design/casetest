@@ -776,25 +776,40 @@
 
         async function loadAdminPrizes() {
             const listEl = document.getElementById('admin-prizes-list');
-            listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted);">Загрузка...</div>';
+            
+            if (listEl.children.length === 0 || listEl.querySelector('div[style*="text-align:center"]')) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted);">Загрузка...</div>';
+            }
+
             try {
                 const res = await fetch(`/api/admin/prizes?username=${username}`);
                 const data = await res.json();
                 if (!data.prizes) return;
                 cachedServerPrizes = data.prizes;
-                listEl.innerHTML = '';
-                data.prizes.forEach(p => {
-                    const card = document.createElement('div');
-                    card.className = 'admin-card';
-                    card.innerHTML = `
-                        <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '20px')} <b style="overflow: hidden; text-overflow: ellipsis; font-weight:500;">${p.name}</b></div>
-                        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
-                            <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
-                            <button onclick="deletePrize(${p.id})">Удалить</button>
-                        </div>
-                    `;
-                    listEl.appendChild(card);
-                });
+
+                if (listEl.children.length !== data.prizes.length) {
+                    listEl.innerHTML = '';
+                    data.prizes.forEach(p => {
+                        const card = document.createElement('div');
+                        card.className = 'admin-card';
+                        card.id = `admin-prize-card-${p.id}`;
+                        card.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '20px')} <b style="overflow: hidden; text-overflow: ellipsis; font-weight:500;">${p.name}</b></div>
+                            <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                                <input type="number" id="weight-${p.id}" value="${p.weight}" onchange="updateWeight(${p.id})">
+                                <button onclick="deletePrize(${p.id})">Удалить</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    });
+                } else {
+                    data.prizes.forEach(p => {
+                        const input = document.getElementById(`weight-${p.id}`);
+                        if (input && document.activeElement !== input) {
+                            input.value = p.weight;
+                        }
+                    });
+                }
             } catch (e) {}
         }
 
@@ -937,7 +952,10 @@
         }
 
         async function updateWeight(prizeId) {
-            const weight = Number(document.getElementById(`weight-${prizeId}`).value);
+            const input = document.getElementById(`weight-${prizeId}`);
+            if (!input) return;
+            const weight = Number(input.value);
+            
             await fetch('/api/admin/update-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
