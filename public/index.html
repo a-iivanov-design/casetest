@@ -100,7 +100,7 @@
             display: flex;
         }
 
-        /* Окно рулетки (как на вашем скриншоте — по центру) */
+        /* Современное окно рулетки (без лишнего неона) */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -113,14 +113,13 @@
 
         .roller-window {
             width: 320px;
-            height: 160px;
+            height: 150px;
             overflow: hidden;
             position: relative;
-            background-color: var(--card-bg);
-            border: 2px solid var(--primary);
-            border-radius: 16px;
+            background-color: #111115;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 12px;
             box-sizing: border-box;
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
         }
 
         .roller-content {
@@ -133,12 +132,12 @@
         }
 
         .prize-item {
-            width: 120px;
-            height: 150px;
+            width: 110px;
+            height: 134px;
             flex-shrink: 0;
-            background: #1c1c22;
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
+            background: #18181d;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
             margin: 0 5px;
             display: flex;
             flex-direction: column;
@@ -150,20 +149,20 @@
         }
 
         .prize-icon-wrap {
-            font-size: 32px;
-            margin-bottom: 10px;
+            font-size: 30px;
+            margin-bottom: 8px;
         }
 
         .prize-name {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: bold;
             line-height: 1.2;
             margin-bottom: 4px;
         }
 
         .prize-desc {
-            font-size: 9px;
-            color: #777;
+            font-size: 8px;
+            color: #666;
             line-height: 1.1;
         }
 
@@ -172,34 +171,36 @@
         .prize-rare .prize-name { color: #ab47bc; }
         .prize-epic .prize-name { color: var(--primary); }
 
-        .selector-frame {
+        /* Элегантный центральный маркер вместо громоздкой рамки */
+        .selector-center-line {
             position: absolute;
-            width: 130px;
-            height: 160px;
-            border: 2px solid var(--primary);
-            border-radius: 14px;
-            pointer-events: none;
-            box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            background: var(--primary);
             z-index: 10;
+            box-shadow: 0 0 8px var(--primary);
+            pointer-events: none;
         }
-
-        .selector-arrow-top, .selector-arrow-bottom {
+        .selector-center-line::before, .selector-center-line::after {
+            content: '';
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
             height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
-            z-index: 11;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
         }
-        .selector-arrow-top {
-            top: -2px;
-            border-top: 8px solid var(--primary);
+        .selector-center-line::before {
+            top: 0;
+            border-top: 6px solid var(--primary);
         }
-        .selector-arrow-bottom {
-            bottom: -2px;
-            border-bottom: 8px solid var(--primary);
+        .selector-center-line::after {
+            bottom: 0;
+            border-bottom: 6px solid var(--primary);
         }
 
         .action-area {
@@ -221,9 +222,9 @@
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
-            border-radius: 16px;
+            border-radius: 14px;
             cursor: pointer;
-            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 255, 102, 0.2);
             transition: all 0.2s ease;
         }
 
@@ -262,7 +263,7 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             padding: 4px;
-            border-radius: 16px;
+            border-radius: 14px;
             display: flex;
             gap: 4px;
             box-sizing: border-box;
@@ -277,7 +278,7 @@
             padding: 10px;
             font-size: 12px;
             font-weight: bold;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
@@ -391,10 +392,14 @@
         </div>
     </div>
 
-    <!-- Верхняя панель -->
-    <div class="top-bar">
+    <!-- Верхняя панель с кнопками управления -->
+    <div class="top-bar" style="justify-content: space-between;">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Админка
+        </button>
+        <!-- Кнопка выхода из админки обратно на рулетку (скрыта по умолчанию, видна в админке) -->
+        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">
+            ✕ Закрыть админку
         </button>
     </div>
 
@@ -404,13 +409,10 @@
         <div class="subtitle">Бесплатная рулетка</div>
     </div>
 
-    <!-- Секция Рулетки (центрированная строго по вертикали и горизонтали) -->
+    <!-- Секция Рулетки -->
     <div id="section-case" class="view-section active">
         <div class="roller-container-wrapper">
-            <div class="selector-frame">
-                <div class="selector-arrow-top"></div>
-                <div class="selector-arrow-bottom"></div>
-            </div>
+            <div class="selector-center-line"></div>
             <div class="roller-window" id="roller-window">
                 <div class="roller-content" id="roller-content"></div>
             </div>
@@ -431,8 +433,8 @@
         </div>
     </div>
 
-    <!-- Секция Админки -->
-    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto;">
+    <!-- Секция Админки с полноценным вертикальным скроллом -->
+    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; flex: 1; max-height: calc(100vh - 130px); padding-bottom: 20px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
             <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
@@ -442,7 +444,7 @@
         </div>
 
         <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="admin-prizes-list"><div style="text-align:center; color:#666;">Загрузка...</div></div>
+            <div class="admin-list" id="admin-prizes-list" style="max-height: 220px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:#666;">Загрузка...</div></div>
             <div class="add-prize-form" style="margin-top: 15px;">
                 <input type="text" id="new-name" placeholder="Название приза">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи или URL ссылки)">
@@ -578,25 +580,31 @@
             document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
             document.getElementById('btn-tab-case').classList.remove('active');
             document.getElementById('btn-tab-inventory').classList.remove('active');
-            document.getElementById('admin-entry-btn').style.border = '1px solid var(--border-color)';
 
             const bottomNav = document.getElementById('bottom-nav-toggle');
+            const adminEntryBtn = document.getElementById('admin-entry-btn');
+            const exitAdminBtn = document.getElementById('exit-admin-btn');
 
             if (tab === 'case') {
                 document.getElementById('section-case').classList.add('active');
                 document.getElementById('btn-tab-case').classList.add('active');
                 bottomNav.style.display = 'flex';
+                exitAdminBtn.style.display = 'none';
+                if (adminEntryBtn.style.display !== 'none') adminEntryBtn.style.display = 'flex';
                 checkUserStatus();
                 fillRollerDummy();
             } else if (tab === 'inventory') {
                 document.getElementById('section-inventory').classList.add('active');
                 document.getElementById('btn-tab-inventory').classList.add('active');
                 bottomNav.style.display = 'flex';
+                exitAdminBtn.style.display = 'none';
+                if (adminEntryBtn.style.display !== 'none') adminEntryBtn.style.display = 'flex';
                 loadInventory();
             } else if (tab === 'admin') {
                 document.getElementById('section-admin').classList.add('active');
                 bottomNav.style.display = 'none';
-                document.getElementById('admin-entry-btn').style.border = '1px solid var(--primary)';
+                adminEntryBtn.style.display = 'none';
+                exitAdminBtn.style.display = 'flex';
                 loadAdminPrizes();
             }
         }
@@ -669,8 +677,8 @@
                     const card = document.createElement('div');
                     card.className = 'admin-card';
                     card.innerHTML = `
-                        <div>${getIconHtml(p.icon, '18px')} <b>${p.name}</b></div>
-                        <div style="display: flex; gap: 5px; align-items: center;">
+                        <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '18px')} <b style="overflow: hidden; text-overflow: ellipsis;">${p.name}</b></div>
+                        <div style="display: flex; gap: 5px; align-items: center; flex-shrink: 0;">
                             <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
                             <button onclick="deletePrize(${p.id})">X</button>
                         </div>
@@ -870,7 +878,7 @@
                 const div = document.createElement('div');
                 div.className = `prize-item prize-${p.rarity || 'common'}`;
                 div.innerHTML = `
-                    <div class="prize-icon-wrap">${getIconHtml(p.icon, '32px')}</div>
+                    <div class="prize-icon-wrap">${getIconHtml(p.icon, '28px')}</div>
                     <div class="prize-name">${p.name}</div>
                     <div class="prize-desc">Бонус клуба</div>
                 `;
@@ -880,7 +888,7 @@
             content.style.transition = 'none';
             content.style.left = '0px';
 
-            const targetLeft = -(30 * 130 - 160 + 35);
+            const targetLeft = -(30 * 120 - 160 + 30);
 
             setTimeout(() => {
                 content.style.transition = 'left 4s cubic-bezier(0.1, 0.8, 0.2, 1)';
