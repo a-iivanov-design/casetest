@@ -77,15 +77,6 @@
             text-transform: uppercase;
         }
 
-        .subtitle {
-            font-size: 10px;
-            color: #777;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-top: 4px;
-            font-weight: 600;
-        }
-
         /* Секции */
         .view-section {
             display: none;
@@ -413,7 +404,6 @@
     <!-- Логотип клуба -->
     <div class="header-logo-container" id="header-logo-box">
         <div class="club-logo-text" id="club-logo-text">RushB</div>
-        <div class="subtitle">Бесплатная рулетка</div>
     </div>
 
     <!-- Секция Рулетки -->
@@ -516,7 +506,7 @@
             
             if (cfg.clubLogo) {
                 if (cfg.clubLogo.startsWith('http') || cfg.clubLogo.startsWith('/')) {
-                    logoBox.innerHTML = `<img src="${cfg.clubLogo}" class="club-logo-img" alt="Logo"><div class="subtitle">Бесплатная рулетка</div>`;
+                    logoBox.innerHTML = `<img src="${cfg.clubLogo}" class="club-logo-img" alt="Logo">`;
                 } else {
                     document.getElementById('club-logo-text').innerText = cfg.clubLogo;
                 }
@@ -785,11 +775,16 @@
         async function setBanStatus(banState) {
             const targetUsername = document.getElementById('ban-username').value;
             if (!targetUsername) return;
-            await fetch('/api/admin/ban', {
+            const res = await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, username, targetUsername, banState })
             });
+            const data = await res.json();
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
             alert('Готово');
             loadBannedUsers();
         }
@@ -816,11 +811,16 @@
 
         async function deleteUser(targetIdentifier) {
             if (!confirm(`Точно удалить пользователя (${targetIdentifier}) из приложения?`)) return;
-            await fetch('/api/admin/delete-user', {
+            const res = await fetch('/api/admin/delete-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId, username, targetIdentifier })
             });
+            const data = await res.json();
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
             loadAllUsers();
         }
 
