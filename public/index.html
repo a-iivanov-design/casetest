@@ -34,7 +34,7 @@
         .top-bar {
             width: 100%;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
             min-height: 30px;
             flex-shrink: 0;
@@ -86,7 +86,7 @@
             font-weight: 600;
         }
 
-        /* Секция рулетки во весь доступный центр */
+        /* Секции */
         .view-section {
             display: none;
             flex-direction: column;
@@ -95,12 +95,13 @@
             width: 100%;
             flex: 1;
             box-sizing: border-box;
+            overflow: hidden;
         }
         .view-section.active {
             display: flex;
         }
 
-        /* Современное окно рулетки (без лишнего неона) */
+        /* Современное окно рулетки без неона */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -171,7 +172,7 @@
         .prize-rare .prize-name { color: #ab47bc; }
         .prize-epic .prize-name { color: var(--primary); }
 
-        /* Элегантный центральный маркер вместо громоздкой рамки */
+        /* Центральный маркер */
         .selector-center-line {
             position: absolute;
             top: 0;
@@ -181,7 +182,6 @@
             width: 2px;
             background: var(--primary);
             z-index: 10;
-            box-shadow: 0 0 8px var(--primary);
             pointer-events: none;
         }
         .selector-center-line::before, .selector-center-line::after {
@@ -222,9 +222,8 @@
             font-weight: 800;
             letter-spacing: 1px;
             text-transform: uppercase;
-            border-radius: 14px;
+            border-radius: 12px;
             cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0, 255, 102, 0.2);
             transition: all 0.2s ease;
         }
 
@@ -236,7 +235,6 @@
             background: #222;
             color: #555;
             cursor: not-allowed;
-            box-shadow: none;
         }
 
         .spin-timer-text {
@@ -256,46 +254,23 @@
             padding: 0 10px;
         }
 
-        /* Нижнее меню переключения (Рулетка / Инвентарь) */
-        .bottom-nav-toggle {
+        /* Инвентарь с поддержкой прокрутки */
+        .inventory-wrapper {
             width: 100%;
             max-width: 320px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            padding: 4px;
-            border-radius: 14px;
-            display: flex;
-            gap: 4px;
-            box-sizing: border-box;
-            flex-shrink: 0;
-        }
-
-        .nav-toggle-btn {
             flex: 1;
-            background: transparent;
-            border: none;
-            color: #777;
-            padding: 10px;
-            font-size: 12px;
-            font-weight: bold;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-
-        .nav-toggle-btn.active {
-            background: #222228;
-            color: var(--primary);
+            overflow-y: auto;
+            max-height: 340px;
+            padding-right: 2px;
+            box-sizing: border-box;
+            margin-top: 10px;
         }
 
         .inventory-list, .admin-list {
             width: 100%;
-            max-width: 320px;
             display: flex;
             flex-direction: column;
             gap: 8px;
-            margin-top: 10px;
         }
 
         .inventory-card, .admin-card {
@@ -359,6 +334,39 @@
             gap: 8px;
         }
 
+        /* Нижнее меню переключения */
+        .bottom-nav-toggle {
+            width: 100%;
+            max-width: 320px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 4px;
+            border-radius: 12px;
+            display: flex;
+            gap: 4px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .nav-toggle-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #777;
+            padding: 10px;
+            font-size: 12px;
+            font-weight: bold;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .nav-toggle-btn.active {
+            background: #222228;
+            color: var(--primary);
+        }
+
         #banned-screen {
             display: none;
             position: fixed;
@@ -374,7 +382,7 @@
         }
         .banned-box {
             background: var(--card-bg);
-            border: 2px solid var(--secondary);
+            border: 1px solid var(--secondary);
             padding: 30px;
             border-radius: 16px;
             max-width: 300px;
@@ -392,14 +400,13 @@
         </div>
     </div>
 
-    <!-- Верхняя панель с кнопками управления -->
-    <div class="top-bar" style="justify-content: space-between;">
+    <!-- Верхняя панель управления -->
+    <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Админка
         </button>
-        <!-- Кнопка выхода из админки обратно на рулетку (скрыта по умолчанию, видна в админке) -->
         <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">
-            ✕ Закрыть админку
+            ✕ Закрыть
         </button>
     </div>
 
@@ -426,15 +433,17 @@
         </div>
     </div>
 
-    <!-- Секция Инвентаря -->
+    <!-- Секция Инвентаря с прокруткой -->
     <div id="section-inventory" class="view-section" style="justify-content: flex-start;">
-        <div class="inventory-list" id="inventory-list">
-            <div style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">Загрузка инвентаря...</div>
+        <div class="inventory-wrapper">
+            <div class="inventory-list" id="inventory-list">
+                <div style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">Загрузка инвентаря...</div>
+            </div>
         </div>
     </div>
 
-    <!-- Секция Админки с полноценным вертикальным скроллом -->
-    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; flex: 1; max-height: calc(100vh - 130px); padding-bottom: 20px;">
+    <!-- Секция Админки с прокруткой -->
+    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 120px); padding-bottom: 10px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
             <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
@@ -444,7 +453,7 @@
         </div>
 
         <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="admin-prizes-list" style="max-height: 220px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:#666;">Загрузка...</div></div>
+            <div class="admin-list" id="admin-prizes-list" style="max-height: 200px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:#666;">Загрузка...</div></div>
             <div class="add-prize-form" style="margin-top: 15px;">
                 <input type="text" id="new-name" placeholder="Название приза">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи или URL ссылки)">
@@ -468,11 +477,11 @@
                 </div>
                 <button class="spin-btn" style="padding:8px; font-size:11px; background:#ff9800; color:#fff;" onclick="resetTimer()">Сбросить таймер</button>
             </div>
-            <div class="admin-list" id="banned-users-list" style="margin-top:10px;"></div>
+            <div class="admin-list" id="banned-users-list" style="margin-top:10px; max-height:160px; overflow-y:auto;"></div>
         </div>
 
         <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="all-users-list"></div>
+            <div class="admin-list" id="all-users-list" style="max-height: 220px; overflow-y: auto;"></div>
         </div>
 
         <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
@@ -482,11 +491,11 @@
                     <button class="spin-btn" style="padding:8px; font-size:11px; background:var(--secondary); color:#fff;" onclick="addNewAdmin()">Назначить</button>
                 </div>
             </div>
-            <div class="admin-list" id="admins-list-container"></div>
+            <div class="admin-list" id="admins-list-container" style="max-height: 160px; overflow-y: auto;"></div>
         </div>
     </div>
 
-    <!-- Нижнее меню переключения (Рулетка / Инвентарь) -->
+    <!-- Нижнее меню переключения -->
     <div class="bottom-nav-toggle" id="bottom-nav-toggle">
         <button class="nav-toggle-btn active" id="btn-tab-case" onclick="switchTab('case')">Рулетка</button>
         <button class="nav-toggle-btn" id="btn-tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
@@ -529,6 +538,7 @@
         let cachedServerPrizes = [];
         let isSpinning = false;
         let isSuperAdmin = false;
+        let isAdminUser = false;
 
         async function checkUserStatus() {
             const btn = document.getElementById('action-button');
@@ -565,6 +575,7 @@
                 const res = await fetch(`/api/admin/check?userId=${userId}&username=${username}`);
                 const data = await res.json();
                 if (data.isAdmin) {
+                    isAdminUser = true;
                     isSuperAdmin = data.isSuper;
                     document.getElementById('admin-entry-btn').style.display = 'flex';
                 }
@@ -590,7 +601,7 @@
                 document.getElementById('btn-tab-case').classList.add('active');
                 bottomNav.style.display = 'flex';
                 exitAdminBtn.style.display = 'none';
-                if (adminEntryBtn.style.display !== 'none') adminEntryBtn.style.display = 'flex';
+                if (isAdminUser) adminEntryBtn.style.display = 'flex';
                 checkUserStatus();
                 fillRollerDummy();
             } else if (tab === 'inventory') {
@@ -598,7 +609,7 @@
                 document.getElementById('btn-tab-inventory').classList.add('active');
                 bottomNav.style.display = 'flex';
                 exitAdminBtn.style.display = 'none';
-                if (adminEntryBtn.style.display !== 'none') adminEntryBtn.style.display = 'flex';
+                if (isAdminUser) adminEntryBtn.style.display = 'flex';
                 loadInventory();
             } else if (tab === 'admin') {
                 document.getElementById('section-admin').classList.add('active');
