@@ -25,11 +25,12 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            padding: 15px 15px 25px 15px;
+            padding: 15px 15px 20px 15px;
             box-sizing: border-box;
             justify-content: space-between;
         }
 
+        /* Верхняя панель */
         .top-bar {
             width: 100%;
             display: flex;
@@ -53,13 +54,13 @@
             gap: 5px;
         }
 
+        /* Логотип клуба */
         .header-logo-container {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
             flex-shrink: 0;
-            margin-top: -10px;
         }
 
         .club-logo-img {
@@ -85,6 +86,21 @@
             font-weight: 600;
         }
 
+        /* Секция рулетки во весь доступный центр */
+        .view-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            flex: 1;
+            box-sizing: border-box;
+        }
+        .view-section.active {
+            display: flex;
+        }
+
+        /* Окно рулетки (как на вашем скриншоте — по центру) */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -92,7 +108,7 @@
             justify-content: center;
             align-items: center;
             flex-shrink: 0;
-            margin: 10px 0;
+            margin: 15px 0;
         }
 
         .roller-window {
@@ -100,9 +116,11 @@
             height: 160px;
             overflow: hidden;
             position: relative;
-            background-color: var(--bg);
+            background-color: var(--card-bg);
+            border: 2px solid var(--primary);
             border-radius: 16px;
             box-sizing: border-box;
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.2);
         }
 
         .roller-content {
@@ -118,7 +136,7 @@
             width: 120px;
             height: 150px;
             flex-shrink: 0;
-            background: var(--card-bg);
+            background: #1c1c22;
             border: 1px solid var(--border-color);
             border-radius: 12px;
             margin: 0 5px;
@@ -195,9 +213,9 @@
         button.spin-btn {
             width: 100%;
             max-width: 320px;
-            background: var(--card-bg);
-            color: #fff;
-            border: 1px solid var(--border-color);
+            background: var(--primary);
+            color: #000;
+            border: none;
             padding: 16px;
             font-size: 15px;
             font-weight: 800;
@@ -205,31 +223,31 @@
             text-transform: uppercase;
             border-radius: 16px;
             cursor: pointer;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0, 255, 102, 0.3);
             transition: all 0.2s ease;
         }
 
         button.spin-btn:not(:disabled):active {
             transform: scale(0.98);
-            background: #202025;
         }
 
         button.spin-btn:disabled {
+            background: #222;
             color: #555;
             cursor: not-allowed;
-            border-color: #1a1a1f;
+            box-shadow: none;
         }
 
         .spin-timer-text {
             font-size: 11px;
             color: #666;
-            margin-top: 10px;
+            margin-top: 8px;
             text-align: center;
             font-weight: 500;
         }
 
         #result-message {
-            margin-top: 8px;
+            margin-top: 4px;
             font-size: 12px;
             font-weight: 600;
             text-align: center;
@@ -237,6 +255,7 @@
             padding: 0 10px;
         }
 
+        /* Нижнее меню переключения (Рулетка / Инвентарь) */
         .bottom-nav-toggle {
             width: 100%;
             max-width: 320px;
@@ -267,19 +286,6 @@
         .nav-toggle-btn.active {
             background: #222228;
             color: var(--primary);
-        }
-
-        .view-section {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            flex: 1;
-            overflow-y: auto;
-            box-sizing: border-box;
-        }
-        .view-section.active {
-            display: flex;
         }
 
         .inventory-list, .admin-list {
@@ -385,18 +391,20 @@
         </div>
     </div>
 
+    <!-- Верхняя панель -->
     <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Админка
         </button>
     </div>
 
+    <!-- Логотип клуба -->
     <div class="header-logo-container" id="header-logo-box">
         <div class="club-logo-text" id="club-logo-text">RushB</div>
         <div class="subtitle">Бесплатная рулетка</div>
     </div>
 
-    <!-- Секция Рулетки -->
+    <!-- Секция Рулетки (центрированная строго по вертикали и горизонтали) -->
     <div id="section-case" class="view-section active">
         <div class="roller-container-wrapper">
             <div class="selector-frame">
@@ -411,21 +419,21 @@
         <div id="result-message"></div>
 
         <div class="action-area">
-            <button class="spin-btn" id="action-button" onclick="startCase()">Крутим...</button>
+            <button class="spin-btn" id="action-button" onclick="startCase()">ОТКРЫТЬ КЕЙС</button>
             <div class="spin-timer-text">1 бесплатный прокрут каждые 24 часа</div>
         </div>
     </div>
 
     <!-- Секция Инвентаря -->
-    <div id="section-inventory" class="view-section">
+    <div id="section-inventory" class="view-section" style="justify-content: flex-start;">
         <div class="inventory-list" id="inventory-list">
             <div style="text-align: center; color: #666; font-size: 12px; margin-top: 20px;">Загрузка инвентаря...</div>
         </div>
     </div>
 
     <!-- Секция Админки -->
-    <div id="section-admin" class="view-section">
-        <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto;">
+    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto;">
+        <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
             <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
             <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px;">Баны</button>
@@ -537,12 +545,12 @@
 
                 if (data.canSpin === false) {
                     btn.disabled = true;
-                    btn.innerText = 'Крутим...';
+                    btn.innerText = 'ОТКРЫТЬ КЕЙС';
                     msg.style.color = 'var(--secondary)';
                     msg.innerText = `⏳ Следующий прокрут через ${data.hoursLeft} ч.`;
                 } else {
                     btn.disabled = false;
-                    btn.innerText = 'Крутим...';
+                    btn.innerText = 'ОТКРЫТЬ КЕЙС';
                     msg.innerText = '';
                 }
             } catch (e) {
@@ -882,7 +890,7 @@
             setTimeout(() => {
                 isSpinning = false;
                 btn.disabled = true;
-                btn.innerText = 'Крутим...';
+                btn.innerText = 'ОТКРЫТЬ КЕЙС';
                 msg.style.color = 'var(--primary)';
                 msg.innerHTML = `🎉 Вы выиграли: <b>${winningPrize.name}</b>!<br>Код: <span style="color:var(--secondary);">${serverData.promo}</span>`;
             }, 4100);
