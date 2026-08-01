@@ -67,6 +67,21 @@ async function initDb() {
 }
 initDb();
 
+// Вспомогательная функция проверки прав администратора
+async function verifyAdmin(username) {
+  if (!username) return { isAdmin: false, isSuper: false };
+  const clean = username.replace('@', '').toLowerCase();
+  const res = await db.execute({
+    sql: `SELECT * FROM admins WHERE LOWER(username) = ?`,
+    args: [clean]
+  });
+  if (res.rows.length === 0) return { isAdmin: false, isSuper: false };
+  return {
+    isAdmin: true,
+    isSuper: res.rows[0].is_super === 1
+  };
+}
+
 app.get('/api/status', async (req, res) => {
   try {
     const { userId, username } = req.query;
@@ -115,19 +130,8 @@ app.get('/api/status', async (req, res) => {
 app.get('/api/admin/check', async (req, res) => {
   try {
     const { username } = req.query;
-    if (!username) return res.json({ isAdmin: false });
-
-    const cleanUsername = username.replace('@', '').toLowerCase();
-    const adminRes = await db.execute({
-      sql: `SELECT * FROM admins WHERE LOWER(username) = ?`,
-      args: [cleanUsername]
-    });
-
-    if (adminRes.rows.length > 0) {
-      res.json({ isAdmin: true, isSuper: adminRes.rows[0].is_super === 1 });
-    } else {
-      res.json({ isAdmin: false });
-    }
+    const adminData = await verifyAdmin(username);
+    res.json(adminData);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -264,6 +268,10 @@ app.post('/api/inventory/delete', async (req, res) => {
 
 app.get('/api/admin/prizes', async (req, res) => {
   try {
+    const { username } = req.query;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const prizesRes = await db.execute(`SELECT * FROM prizes`);
     res.json({ prizes: prizesRes.rows });
   } catch (e) {
@@ -273,7 +281,10 @@ app.get('/api/admin/prizes', async (req, res) => {
 
 app.post('/api/admin/add-prize', async (req, res) => {
   try {
-    const { name, icon, rarity, weight, promo_prefix } = req.body;
+    const { username, name, icon, rarity, weight, promo_prefix } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     await db.execute({
       sql: `INSERT INTO prizes (name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?)`,
       args: [name, icon || '🎁', rarity || 'common', Number(weight) || 1, promo_prefix || 'PROMO']
@@ -286,7 +297,10 @@ app.post('/api/admin/add-prize', async (req, res) => {
 
 app.post('/api/admin/delete-prize', async (req, res) => {
   try {
-    const { prizeId } = req.body;
+    const { username, prizeId } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     await db.execute({
       sql: `DELETE FROM prizes WHERE id = ?`,
       args: [prizeId]
@@ -299,7 +313,10 @@ app.post('/api/admin/delete-prize', async (req, res) => {
 
 app.post('/api/admin/update-prize', async (req, res) => {
   try {
-    const { prizeId, weight } = req.body;
+    const { username, prizeId, weight } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     await db.execute({
       sql: `UPDATE prizes SET weight = ? WHERE id = ?`,
       args: [Number(weight), prizeId]
@@ -312,6 +329,10 @@ app.post('/api/admin/update-prize', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
   try {
+    const { username } = req.query;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const usersCount = await db.execute(`SELECT COUNT(*) as count FROM users WHERE username IS NOT NULL AND username != ''`);
     const bannedCount = await db.execute(`SELECT COUNT(*) as count FROM users WHERE is_banned = 1`);
     const spinsCount = await db.execute(`SELECT COUNT(*) as count FROM inventory`);
@@ -328,6 +349,10 @@ app.get('/api/admin/stats', async (req, res) => {
 
 app.get('/api/admin/banned-list', async (req, res) => {
   try {
+    const { username } = req.query;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1 AND username IS NOT NULL`);
     res.json({ bannedUsers: banned.rows });
   } catch (e) {
@@ -337,6 +362,10 @@ app.get('/api/admin/banned-list', async (req, res) => {
 
 app.get('/api/admin/users-list', async (req, res) => {
   try {
+    const { username } = req.query;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const users = await db.execute(`SELECT id, username, is_banned FROM users WHERE username IS NOT NULL AND username != ''`);
     res.json({ users: users.rows });
   } catch (e) {
@@ -346,7 +375,10 @@ app.get('/api/admin/users-list', async (req, res) => {
 
 app.post('/api/admin/ban', async (req, res) => {
   try {
-    const { targetUsername, banState } = req.body;
+    const { username, targetUsername, banState } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const cleanUser = targetUsername.replace('@', '').toLowerCase();
     
     if (cleanUser === 'ropogku') {
@@ -365,7 +397,10 @@ app.post('/api/admin/ban', async (req, res) => {
 
 app.post('/api/admin/delete-user', async (req, res) => {
   try {
-    const { targetIdentifier } = req.body;
+    const { username, targetIdentifier } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const cleanUser = targetIdentifier ? String(targetIdentifier).replace('@', '').toLowerCase() : '';
     
     if (cleanUser === 'ropogku') {
@@ -398,7 +433,10 @@ app.post('/api/admin/delete-user', async (req, res) => {
 
 app.post('/api/admin/reset-timer', async (req, res) => {
   try {
-    const { targetUsername } = req.body;
+    const { username, targetUsername } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const cleanUser = targetUsername.replace('@', '').toLowerCase();
     await db.execute({
       sql: `UPDATE users SET last_spin = NULL WHERE LOWER(username) = ?`,
@@ -412,6 +450,10 @@ app.post('/api/admin/reset-timer', async (req, res) => {
 
 app.get('/api/admin/list', async (req, res) => {
   try {
+    const { username } = req.query;
+    const admin = await verifyAdmin(username);
+    if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
+
     const admins = await db.execute(`SELECT username, is_super FROM admins`);
     res.json({ admins: admins.rows });
   } catch (e) {
@@ -421,7 +463,10 @@ app.get('/api/admin/list', async (req, res) => {
 
 app.post('/api/admin/add-admin', async (req, res) => {
   try {
-    const { newAdminUsername } = req.body;
+    const { username, newAdminUsername } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isSuper) return res.status(403).json({ error: 'Only super admin can add admins' });
+
     const cleanUser = newAdminUsername.replace('@', '').toLowerCase();
     await db.execute({
       sql: `INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, 0)`,
@@ -435,7 +480,10 @@ app.post('/api/admin/add-admin', async (req, res) => {
 
 app.post('/api/admin/remove-admin', async (req, res) => {
   try {
-    const { targetAdminUsername } = req.body;
+    const { username, targetAdminUsername } = req.body;
+    const admin = await verifyAdmin(username);
+    if (!admin.isSuper) return res.status(403).json({ error: 'Only super admin can remove admins' });
+
     const cleanUser = targetAdminUsername.replace('@', '').toLowerCase();
     if (cleanUser === 'ropogku') {
       return res.status(400).json({ error: 'Нельзя удалить главного администратора' });
