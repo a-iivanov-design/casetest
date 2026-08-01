@@ -446,9 +446,9 @@
     <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 120px); padding-bottom: 10px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
-            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Статистика</button>
+            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
             <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px;">Баны</button>
-            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Пользователи</button>
+            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Юзеры</button>
             <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:6px;">Админы</button>
         </div>
 
@@ -477,8 +477,7 @@
                 </div>
                 <button class="spin-btn" style="padding:8px; font-size:11px; background:#ff9800; color:#fff;" onclick="resetTimer()">Сбросить таймер</button>
             </div>
-            <div style="width:100%; max-width:320px; font-size:11px; color:#888; margin: 10px 0 4px 0; font-weight:600;">Список забаненных:</div>
-            <div class="admin-list" id="banned-users-list" style="max-height:160px; overflow-y:auto;"></div>
+            <div class="admin-list" id="banned-users-list" style="margin-top:10px; max-height:160px; overflow-y:auto;"></div>
         </div>
 
         <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
@@ -511,25 +510,6 @@
             return icon;
         }
 
-        // Строгое форматирование: убираем лишние префиксы, технические нули и выводим читаемый юзернейм или ID
-        function formatUsername(rawName) {
-            if (!rawName) return '@unknown';
-            let s = String(rawName).trim();
-            if (s.startsWith('@')) s = s.substring(1);
-            if (s.startsWith('id_')) s = s.replace('id_', '');
-            
-            // Если в строке точка с нулем на конце (например, от баз данных типа float/число) — убираем её
-            if (s.includes('.')) {
-                s = s.split('.')[0];
-            }
-
-            // Если это просто числовой Telegram ID, отображаем как @user_ID
-            if (/^\d+$/.test(s)) {
-                return '@user_' + s;
-            }
-            return '@' + s;
-        }
-
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             const logoBox = document.getElementById('header-logo-box');
@@ -554,6 +534,10 @@
 
         const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
         const username = tg.initDataUnsafe?.user?.username || '';
+
+        if (!username) {
+            alert('У вас не установлен Telegram юзернейм! Пожалуйста, укажите его в настройках Telegram, так как приложение работает исключительно по юзернеймам.');
+        }
 
         let cachedServerPrizes = [];
         let isSpinning = false;
@@ -734,30 +718,25 @@
 
         async function loadBannedUsers() {
             const listEl = document.getElementById('banned-users-list');
-            listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:11px;">Загрузка...</div>';
             try {
                 const res = await fetch(`/api/admin/banned-list?userId=${userId}&username=${username}`);
                 const data = await res.json();
                 if (!data.bannedUsers || data.bannedUsers.length === 0) {
-                    listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:11px;">Нет забаненных пользователей</div>';
+                    listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Нет забаненных</div>';
                     return;
                 }
                 listEl.innerHTML = '';
                 data.bannedUsers.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const displayU = formatUsername(u.username || u.id);
-                    card.innerHTML = `<div>${displayU}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username || u.id}')">Разбан</button>`;
+                    card.innerHTML = `<div>@${u.username}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username}')">Разбан</button>`;
                     listEl.appendChild(card);
                 });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align:center; color:var(--secondary); font-size:11px;">Ошибка загрузки</div>';
-            }
+            } catch (e) {}
         }
 
         async function loadAllUsers() {
             const listEl = document.getElementById('all-users-list');
-            listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Загрузка...</div>';
             try {
                 const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
                 const data = await res.json();
@@ -769,13 +748,16 @@
                 data.users.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const displayU = formatUsername(u.username || u.id);
-                    card.innerHTML = `<div>${displayU}</div><button onclick="document.getElementById('ban-username').value='${displayU.replace('@', '')}'; switchAdminSub('ban');">Управлять</button>`;
+                    card.innerHTML = `
+                        <div>@${u.username}</div>
+                        <div style="display:flex; gap:4px;">
+                            <button style="background:var(--secondary);" onclick="document.getElementById('ban-username').value='${u.username}'; switchAdminSub('ban');">Бан</button>
+                            <button style="background:#444;" onclick="deleteUser('${u.username}')">Удалить</button>
+                        </div>
+                    `;
                     listEl.appendChild(card);
                 });
-            } catch (e) {
-                listEl.innerHTML = '<div style="text-align:center; color:var(--secondary); font-size:12px;">Ошибка загрузки</div>';
-            }
+            } catch (e) {}
         }
 
         async function loadAdminsList() {
@@ -788,61 +770,52 @@
                 data.admins.forEach(adm => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const displayU = formatUsername(adm.username || adm.id);
-                    card.innerHTML = `<div>${displayU} ${adm.is_super ? '(Супер)' : ''}</div>`;
+                    card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
         }
 
         async function setBanStatus(banState) {
-            const targetUsername = document.getElementById('ban-username').value.trim();
-            if (!targetUsername) return alert('Введите юзернейм');
-            
-            try {
-                const response = await fetch('/api/admin/ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, username, targetUsername, banState })
-                });
-                const resData = await response.json();
-                if (response.status !== 200) {
-                    alert(resData.error || 'Ошибка при изменении статуса бана');
-                    return;
-                }
-                alert(banState === 1 ? 'Пользователь успешно забанен!' : 'Пользователь разбанен!');
-                loadBannedUsers();
-                loadAllUsers();
-            } catch (e) {
-                alert('Ошибка соединения с сервером');
-            }
+            const targetUsername = document.getElementById('ban-username').value;
+            if (!targetUsername) return;
+            await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername, banState })
+            });
+            alert('Готово');
+            loadBannedUsers();
         }
 
         async function resetTimer() {
-            const targetUsername = document.getElementById('ban-username').value.trim();
-            if (!targetUsername) return alert('Введите юзернейм');
-            try {
-                await fetch('/api/admin/reset-timer', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, username, targetUsername })
-                });
-                alert('Таймер прокрута сброшен!');
-            } catch (e) {
-                alert('Ошибка соединения');
-            }
+            const targetUsername = document.getElementById('ban-username').value;
+            if (!targetUsername) return;
+            await fetch('/api/admin/reset-timer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername })
+            });
+            alert('Таймер сброшен!');
         }
 
         async function quickUnban(targetUsername) {
-            try {
-                await fetch('/api/admin/ban', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
-                });
-                loadBannedUsers();
-                loadAllUsers();
-            } catch (e) {}
+            await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
+            });
+            loadBannedUsers();
+        }
+
+        async function deleteUser(targetUsername) {
+            if (!confirm(`Только что вы хотите удалить пользователя @${targetUsername} из приложения?`)) return;
+            await fetch('/api/admin/delete-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetUsername })
+            });
+            loadAllUsers();
         }
 
         async function updateWeight(prizeId) {
@@ -916,13 +889,11 @@
                 if (response.status !== 200) {
                     isSpinning = false;
                     btn.disabled = false;
-                    if (serverData.isBanned) {
-                        document.getElementById('banned-screen').style.display = 'flex';
-                        btn.innerText = 'Заблокирован';
-                        return;
-                    }
                     msg.style.color = 'var(--secondary)';
                     msg.innerText = serverData.error || 'Ошибка';
+                    if (serverData.isBanned) {
+                        document.getElementById('banned-screen').style.display = 'flex';
+                    }
                     return;
                 }
             } catch (e) {
