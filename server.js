@@ -64,6 +64,7 @@ async function initDb() {
       args: ['ropogku', 1]
     });
   } else {
+    // Гарантируем, что ropogku всегда супер-админ в базе
     await db.execute({
       sql: `UPDATE admins SET is_super = 1 WHERE LOWER(username) = 'ropogku'`,
       args: []
@@ -121,7 +122,7 @@ app.get('/api/status', async (req, res) => {
     if (user.last_spin) {
       const lastSpinTime = new Date(user.last_spin).getTime();
       const now = Date.now();
-      const cooldownTime = 24 * 60 * 60 * 1000;
+      const cooldownTime = 24 * 60 * 60 * 1000; // Ровно 24 часа в миллисекундах
       const timePassed = now - lastSpinTime;
 
       if (timePassed < cooldownTime) {
