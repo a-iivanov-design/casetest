@@ -497,6 +497,28 @@
         </div>
     </div>
 
+    <!-- Модальное окно победы -->
+    <div id="win-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); z-index:9999; flex-direction:column; justify-content:center; align-items:center; padding:20px; box-sizing:border-box; animation: fadeInModal 0.3s ease;">
+        <div style="background:var(--card-bg); border:1px solid var(--border-color); padding:30px 24px; border-radius:28px; max-width:300px; width:100%; text-align:center; box-shadow: 0 24px 60px rgba(0,0,0,0.7); position:relative; overflow:hidden;">
+            <div style="position:absolute; top:-40px; left:50%; transform:translateX(-50%); width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0) 70%); pointer-events:none;"></div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:6px;">Поздравляем!</div>
+            <div id="win-modal-icon" style="font-size:50px; margin:12px 0;">🎁</div>
+            <h3 id="win-modal-title" style="font-size:18px; font-weight:600; color:var(--text-main); margin:0 0 14px 0; letter-spacing:-0.3px;">Название приза</h3>
+            <div style="background:rgba(0,0,0,0.5); border:1px solid var(--border-color); padding:12px; border-radius:14px; margin-bottom:20px;">
+                <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Ваш промокод</div>
+                <div id="win-modal-promo" style="font-size:15px; font-weight:600; color:var(--primary); letter-spacing:0.5px;">CODE-XXXX</div>
+            </div>
+            <button class="spin-btn" style="padding:14px; font-size:13px;" onclick="closeWinModal()">Забрать в инвентарь</button>
+        </div>
+    </div>
+    
+    <style>
+    @keyframes fadeInModal {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    </style>
+
     <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Панель
@@ -744,6 +766,12 @@
             document.getElementById('roller-wrapper-box').style.display = 'none';
         }
         resetCasePreviewState();
+
+        function closeWinModal() {
+            document.getElementById('win-modal').style.display = 'none';
+            resetCasePreviewState();
+            checkUserStatus();
+        }
 
         async function loadInventory() {
             const listEl = document.getElementById('inventory-list');
@@ -1116,8 +1144,17 @@
                 isSpinning = false;
                 btn.disabled = true;
                 btn.innerText = 'ОТКРЫТЬ КЕЙС';
-                msg.style.color = 'var(--text-main)';
-                msg.innerHTML = `Вы выиграли: <b style="color:var(--primary);">${winningPrize.name}</b><br>Промокод: <span style="color:var(--primary);">${serverData.promo}</span>`;
+                
+                // Выводим данные в красивое модальное окно победы
+                document.getElementById('win-modal-icon').innerHTML = getIconHtml(winningPrize.icon, '50px');
+                document.getElementById('win-modal-title').innerText = winningPrize.name;
+                document.getElementById('win-modal-promo').innerText = serverData.promo;
+                document.getElementById('win-modal').style.display = 'flex';
+                
+                // Тактильный отклик в Telegram
+                if (window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
             }, 4100);
         }
     </script>
