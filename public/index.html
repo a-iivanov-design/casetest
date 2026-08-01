@@ -445,16 +445,16 @@
     <!-- Секция Админки с прокруткой -->
     <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 120px); padding-bottom: 10px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
-            <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
-            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
-            <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px;">Баны</button>
-            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Юзеры</button>
-            <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:6px;">Админы</button>
+            <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px; font-size: 11px;">Призы</button>
+            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px; font-size: 11px;">Статистика</button>
+            <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px; font-size: 11px;">Баны</button>
+            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px; font-size: 11px;">Пользователи</button>
+            <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:6px; font-size: 11px;">Админы</button>
         </div>
 
         <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="admin-prizes-list" style="max-height: 200px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:#666;">Загрузка...</div></div>
-            <div class="add-prize-form" style="margin-top: 15px;">
+            <div class="admin-list" id="admin-prizes-list" style="max-height: 180px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:#666;">Загрузка...</div></div>
+            <div class="add-prize-form" style="margin-top: 10px;">
                 <input type="text" id="new-name" placeholder="Название приза">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи или URL ссылки)">
                 <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
@@ -536,7 +536,7 @@
         const username = tg.initDataUnsafe?.user?.username || '';
 
         if (!username) {
-            alert('У вас не установлен Telegram юзернейм! Пожалуйста, укажите его в настройках Telegram, так как приложение работает исключительно по юзернеймам.');
+            alert('У вас не установлен Telegram юзернейм! Пожалуйста, укажите его в настройках Telegram.');
         }
 
         let cachedServerPrizes = [];
@@ -695,7 +695,7 @@
                         <div style="display: flex; align-items: center; gap: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '18px')} <b style="overflow: hidden; text-overflow: ellipsis;">${p.name}</b></div>
                         <div style="display: flex; gap: 5px; align-items: center; flex-shrink: 0;">
                             <input type="number" id="weight-${p.id}" value="${p.weight}" onblur="updateWeight(${p.id})">
-                            <button onclick="deletePrize(${p.id})">X</button>
+                            <button onclick="deletePrize(${p.id})">Удалить</button>
                         </div>
                     `;
                     listEl.appendChild(card);
@@ -746,13 +746,15 @@
                 }
                 listEl.innerHTML = '';
                 data.users.forEach(u => {
+                    const displayName = u.username ? `@${u.username}` : `ID: ${u.id} (без юзернейма)`;
+                    const targetIdentifier = u.username || u.id;
                     const card = document.createElement('div');
                     card.className = 'admin-card';
                     card.innerHTML = `
-                        <div>@${u.username}</div>
-                        <div style="display:flex; gap:4px;">
-                            <button style="background:var(--secondary);" onclick="document.getElementById('ban-username').value='${u.username}'; switchAdminSub('ban');">Бан</button>
-                            <button style="background:#444;" onclick="deleteUser('${u.username}')">Удалить</button>
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">${displayName}</div>
+                        <div style="display:flex; gap:4px; flex-shrink:0;">
+                            <button style="background:var(--secondary);" onclick="document.getElementById('ban-username').value='${u.username || ''}'; switchAdminSub('ban');">Бан</button>
+                            <button style="background:#444;" onclick="deleteUser('${targetIdentifier}')">Удалить</button>
                         </div>
                     `;
                     listEl.appendChild(card);
@@ -770,7 +772,11 @@
                 data.admins.forEach(adm => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>`;
+                    let actionBtn = '';
+                    if (isSuperAdmin && adm.username !== 'ropogku') {
+                        actionBtn = `<button style="background:#444;" onclick="removeAdmin('${adm.username}')">Разжаловать</button>`;
+                    }
+                    card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>${actionBtn}`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
@@ -808,12 +814,12 @@
             loadBannedUsers();
         }
 
-        async function deleteUser(targetUsername) {
-            if (!confirm(`Только что вы хотите удалить пользователя @${targetUsername} из приложения?`)) return;
+        async function deleteUser(targetIdentifier) {
+            if (!confirm(`Точно удалить пользователя (${targetIdentifier}) из приложения?`)) return;
             await fetch('/api/admin/delete-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername })
+                body: JSON.stringify({ userId, username, targetIdentifier })
             });
             loadAllUsers();
         }
@@ -845,6 +851,7 @@
         }
 
         async function deletePrize(prizeId) {
+            if (!confirm('Удалить этот приз?')) return;
             await fetch('/api/admin/delete-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -862,6 +869,16 @@
                 body: JSON.stringify({ userId, username, newAdminUsername })
             });
             alert('Админ добавлен');
+            loadAdminsList();
+        }
+
+        async function removeAdmin(targetAdminUsername) {
+            if (!confirm(`Разжаловать администратора @${targetAdminUsername}?`)) return;
+            await fetch('/api/admin/remove-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, username, targetAdminUsername })
+            });
             loadAdminsList();
         }
 
