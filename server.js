@@ -10,14 +10,13 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Подключение к Turso / SQLite
 const db = createClient({
     url: process.env.TURSO_DATABASE_URL,
     authToken: process.env.TURSO_AUTH_TOKEN,
 });
 
 async function initDb() {
-    // Создаем только базовые таблицы пользователей, призов и инвентаря, не трогая старые структуры
+    // 1. Создаем таблицы, если их вообще нет
     await db.execute(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT,
@@ -41,13 +40,29 @@ async function initDb() {
         promo_code TEXT,
         won_at INTEGER
     )`);
+
+    // 2. Автоматически добавляем недостающие колонки в существующие таблицы, если они были созданы ранее
+    const tables = ['users', 'inventory'];
+    for (const table of tables) {
+        let res = await db.execute(`PRAGMA table_info(${table})`);
+        let columns = res.rows.map(col => col.name);
+
+        if (table === 'users') {
+            if (!columns.includes('last_spin')) await db.execute(`ALTER TABLE users ADD COLUMN last_spin INTEGER`);
+            if (!columns.includes('is_banned')) await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
+        }
+        if (table === 'inventory') {
+            if (!columns.includes('prize_id')) await db.execute(`ALTER TABLE inventory ADD COLUMN prize_id INTEGER`);
+            if (!columns.includes('promo_code')) await db.execute(`ALTER TABLE inventory ADD COLUMN promo_code TEXT`);
+            if (!columns.includes('won_at')) await db.execute(`ALTER TABLE inventory ADD COLUMN won_at INTEGER`);
+        }
+    }
 }
 initDb();
 
-// Список Telegram ID администраторов (впишите сюда ваши ID через запятую)
-const ADMIN_IDS = ["123456789", "ропогку"]; 
+// Впишите сюда ваш Telegram ID числом, чтобы появилась админка
+const ADMIN_IDS = ["123456789"]; 
 
-// Эндпоинт статуса
 app.get('/api/status', async (req, res) => {
     try {
         const userId = req.query.userId;
@@ -90,7 +105,6 @@ app.get('/api/status', async (req, res) => {
     }
 });
 
-// Эндпоинт инвентаря
 app.get('/api/inventory', async (req, res) => {
     try {
         const userId = req.query.userId;
@@ -107,7 +121,6 @@ app.get('/api/inventory', async (req, res) => {
     }
 });
 
-// Эндпоинт прокрутки
 app.post('/api/spin', async (req, res) => {
     try {
         const { userId } = req.body;
@@ -157,7 +170,6 @@ app.post('/api/spin', async (req, res) => {
     }
 });
 
-// Админские действия
 app.post('/api/admin/action', async (req, res) => {
     try {
         const { adminId, targetId, actionType } = req.body;
