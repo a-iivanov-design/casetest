@@ -46,7 +46,6 @@
             pointer-events: none;
         }
 
-        /* Верхняя панель: размещаем кнопку и логотип на одной линии */
         .top-bar {
             width: 100%;
             display: flex;
@@ -79,7 +78,6 @@
             background: rgba(255, 255, 255, 0.1);
         }
 
-        /* Логотип в шапке */
         .header-logo-container {
             position: absolute;
             left: 50%;
@@ -91,7 +89,7 @@
         }
 
         .club-logo-img {
-            max-height: 40px; /* Увеличили размер логотипа */
+            max-height: 40px;
             max-width: 160px;
             object-fit: contain;
             border-radius: 8px;
@@ -116,13 +114,12 @@
             flex: 1;
             box-sizing: border-box;
             overflow: hidden;
-            justify-content: center; /* Центрируем содержимое кейса по вертикали */
+            justify-content: center;
         }
         .view-section.active {
             display: flex;
         }
 
-        /* Центральная иконка кейса */
         .case-preview-box {
             width: 130px;
             height: 130px;
@@ -152,7 +149,6 @@
             50% { transform: translateY(-6px); }
         }
 
-        /* Рулетка */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -493,7 +489,6 @@
         </div>
     </div>
 
-    <!-- Шапка приложения с кнопкой и центрированным логотипом -->
     <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Панель
@@ -547,11 +542,11 @@
         <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
             <div class="admin-list" id="admin-prizes-list" style="flex:1; overflow-y:auto; padding-right: 4px;"><div style="text-align:center; color:var(--text-muted);">Загрузка...</div></div>
             <div class="add-prize-form" style="margin-top: 10px; flex-shrink:0;">
-                <input type="text" id="new-name" placeholder="Название приза">
-                <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)">
-                <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
-                <input type="number" id="new-weight" placeholder="Шанс (вес)">
-                <input type="text" id="new-promo" placeholder="Префикс промокода">
+                <input type="text" id="new-name" placeholder="Название приза" autocomplete="off">
+                <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)" autocomplete="off">
+                <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)" autocomplete="off">
+                <input type="number" id="new-weight" placeholder="Шанс (вес)" autocomplete="off">
+                <input type="text" id="new-promo" placeholder="Префикс промокода" autocomplete="off">
                 <button class="spin-btn" style="padding: 12px; font-size: 13px;" onclick="addPrize()">Добавить приз</button>
             </div>
         </div>
@@ -562,7 +557,7 @@
 
         <div id="admin-sub-ban" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
             <div class="add-prize-form" style="flex-shrink:0;">
-                <input type="text" id="ban-username" placeholder="Юзернейм (@username)">
+                <input type="text" id="ban-username" placeholder="Юзернейм (@username)" autocomplete="off">
                 <div style="display: flex; gap: 8px;">
                     <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="setBanStatus(1)">Бан</button>
                     <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,255,255,0.1); color:var(--text-main);" onclick="setBanStatus(0)">Разбан</button>
@@ -579,7 +574,7 @@
         <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
             <div id="super-admin-section" style="display:none; width:100%; margin-bottom:10px; flex-shrink:0;">
                 <div class="add-prize-form" style="margin-top:0;">
-                    <input type="text" id="new-admin-username" placeholder="Новый админ (@username)">
+                    <input type="text" id="new-admin-username" placeholder="Новый админ (@username)" autocomplete="off">
                     <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="addNewAdmin()">Назначить</button>
                 </div>
             </div>
