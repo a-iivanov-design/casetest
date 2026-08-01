@@ -16,7 +16,6 @@ const db = createClient({
 });
 
 async function initDb() {
-    // 1. Создаем таблицы, если их вообще нет
     await db.execute(`CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT,
@@ -41,7 +40,6 @@ async function initDb() {
         won_at INTEGER
     )`);
 
-    // 2. Автоматически добавляем недостающие колонки в существующие таблицы, если они были созданы ранее
     const tables = ['users', 'inventory'];
     for (const table of tables) {
         let res = await db.execute(`PRAGMA table_info(${table})`);
@@ -60,7 +58,7 @@ async function initDb() {
 }
 initDb();
 
-// Впишите сюда ваш Telegram ID числом, чтобы появилась админка
+// Впишите сюда ваш Telegram ID числом
 const ADMIN_IDS = ["123456789"]; 
 
 app.get('/api/status', async (req, res) => {
@@ -75,15 +73,17 @@ app.get('/api/status', async (req, res) => {
 
         let isBanned = false;
         let hoursLeft = 0;
+        let nextSpinTime = 0;
 
         if (userRes.rows.length > 0) {
             const user = userRes.rows[0];
             isBanned = user.is_banned === 1;
             if (user.last_spin) {
-                const diff = Date.now() - user.last_spin;
-                const hoursPassed = diff / (1000 * 60 * 60);
-                if (hoursPassed < 24) {
-                    hoursLeft = 24 - hoursPassed;
+                const cooldown = 24 * 60 * 60 * 1000; // 24 часа
+                const elapsed = Date.now() - user.last_spin;
+                if (elapsed < cooldown) {
+                    nextSpinTime = user.last_spin + cooldown;
+                    hoursLeft = (nextSpinTime - Date.now()); // в миллисекундах для удобства таймера
                 }
             }
         }
@@ -98,7 +98,7 @@ app.get('/api/status', async (req, res) => {
             prizes = p.rows;
         }
 
-        res.json({ isBanned, hoursLeft, isAdmin, prizes });
+        res.json({ isBanned, hoursLeft, nextSpinTime, isAdmin, prizes });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -132,7 +132,8 @@ app.post('/api/spin', async (req, res) => {
             const user = userRes.rows[0];
             if (user.is_banned) return res.status(403).json({ error: 'Заблокирован' });
             if (user.last_spin && (now - user.last_spin) < 24 * 60 * 60 * 1000) {
-                return res.status(400).json({ error: 'Рано крутить' });
+                const timeLeft = Math.ceil((24 * 60 * 60 * 1000 - (now - user.last_spin)) / 1000);
+                return res.status(400).json({ error: 'Рано крутить', timeLeft });
             }
         }
 
