@@ -28,7 +28,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            padding: 16px 20px 24px 20px;
+            padding: 12px 20px 20px 20px;
             box-sizing: border-box;
             justify-content: space-between;
             -webkit-font-smoothing: antialiased;
@@ -51,7 +51,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 40px;
+            min-height: 36px;
             flex-shrink: 0;
         }
 
@@ -61,7 +61,7 @@
             -webkit-backdrop-filter: var(--glass-blur);
             color: var(--text-muted);
             border: 1px solid var(--border-color);
-            padding: 8px 14px;
+            padding: 6px 12px;
             border-radius: 12px;
             cursor: pointer;
             font-size: 13px;
@@ -82,15 +82,14 @@
             align-items: center;
             text-align: center;
             flex-shrink: 0;
-            margin: 10px 0 20px 0; /* Увеличили нижний отступ, чтобы кейс не прилипал */
+            margin: 4px 0 12px 0; /* Уменьшили отступы, чтобы всё помещалось */
         }
 
-        /* Увеличили размеры логотипа */
         .club-logo-img {
-            max-height: 64px;
-            max-width: 220px;
+            max-height: 52px; /* Сделали логотип гармоничным по высоте */
+            max-width: 180px;
             object-fit: contain;
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
         .club-logo-text {
@@ -119,31 +118,32 @@
 
         /* Центральная иконка кейса */
         .case-preview-box {
-            width: 140px;
-            height: 140px;
+            width: 130px;
+            height: 130px;
             background: var(--card-bg);
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
             border: 1px solid var(--border-color);
-            border-radius: 32px;
+            border-radius: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 60px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             position: relative;
             animation: floatCase 6s ease-in-out infinite;
+            overflow: visible; /* Разрешаем элементам внутри выходить за границы без обрезания */
         }
         .case-preview-box img {
-            width: 80px;
-            height: 80px;
+            width: 75px;
+            height: 75px;
             object-fit: contain;
         }
 
         @keyframes floatCase {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
+            50% { transform: translateY(-6px); }
         }
 
         /* Рулетка */
@@ -275,7 +275,7 @@
             background: var(--primary);
             color: #000000;
             border: none;
-            padding: 16px;
+            padding: 15px;
             font-size: 14px;
             font-weight: 600;
             letter-spacing: -0.2px;
@@ -303,13 +303,13 @@
         .spin-timer-text {
             font-size: 12px;
             color: var(--text-muted);
-            margin-top: 12px;
+            margin-top: 10px;
             text-align: center;
             font-weight: 400;
         }
 
         #result-message {
-            margin-top: 8px;
+            margin-top: 6px;
             font-size: 13px;
             font-weight: 500;
             text-align: center;
@@ -317,7 +317,6 @@
             padding: 0 10px;
         }
 
-        /* Инвентарь и Админка на всю ширину и высоту */
         .inventory-wrapper {
             width: 100%;
             flex: 1;
@@ -414,7 +413,6 @@
             gap: 10px;
         }
 
-        /* Навигация (Dock) */
         .bottom-nav-toggle {
             width: 100%;
             background: var(--card-bg);
@@ -428,7 +426,7 @@
             box-sizing: border-box;
             flex-shrink: 0;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            margin-top: 10px;
+            margin-top: 8px;
         }
 
         .nav-toggle-btn {
