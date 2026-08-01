@@ -969,11 +969,18 @@
         }
 
         async function addPrize() {
-            const name = document.getElementById('new-name').value;
-            const icon = document.getElementById('new-icon').value;
-            const rarity = document.getElementById('new-rarity').value;
-            const weight = Number(document.getElementById('new-weight').value);
-            const promo_prefix = document.getElementById('new-promo').value;
+            const nameEl = document.getElementById('new-name');
+            const iconEl = document.getElementById('new-icon');
+            const rarityEl = document.getElementById('new-rarity');
+            const weightEl = document.getElementById('new-weight');
+            const promoEl = document.getElementById('new-promo');
+
+            const name = nameEl.value;
+            const icon = iconEl.value;
+            const rarity = rarityEl.value;
+            const weight = Number(weightEl.value);
+            const promo_prefix = promoEl.value;
+
             if (!name || !weight) return alert('Укажите название и шанс');
 
             await fetch('/api/admin/add-prize', {
@@ -982,14 +989,19 @@
                 body: JSON.stringify({ username, name, icon, rarity, weight, promo_prefix })
             });
             
-            document.getElementById('new-name').value = '';
-            document.getElementById('new-icon').value = '';
-            document.getElementById('new-rarity').value = '';
-            document.getElementById('new-weight').value = '';
-            document.getElementById('new-promo').value = '';
+            nameEl.value = '';
+            iconEl.value = '';
+            rarityEl.value = '';
+            weightEl.value = '';
+            promoEl.value = '';
 
             isPrizesLoadedOnce = false;
             loadAdminPrizes();
+
+            setTimeout(() => {
+                nameEl.focus();
+            }, 50);
+
             alert('Приз добавлен');
         }
 
