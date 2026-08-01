@@ -1,7 +1,7 @@
 import express from 'express';
-import { createClient } from '@libsql/client';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createClient } from '@libsql/client';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -11,280 +11,384 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 const db = createClient({
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN,
+  url: process.env.TURSO_DATABASE_URL || 'file:local.db',
+  authToken: process.env.TURSO_AUTH_TOKEN || '',
 });
 
 async function initDb() {
-    await db.execute(`CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        username TEXT,
-        last_spin INTEGER,
-        is_banned INTEGER DEFAULT 0
-    )`);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      username TEXT,
+      last_spin TEXT,
+      is_banned INTEGER DEFAULT 0
+    )
+  `);
 
-    await db.execute(`CREATE TABLE IF NOT EXISTS admins (
-        username TEXT PRIMARY KEY
-    )`);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS prizes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT,
+      icon TEXT,
+      rarity TEXT,
+      weight INTEGER,
+      promo_prefix TEXT
+    )
+  `);
 
-    await db.execute(`CREATE TABLE IF NOT EXISTS prizes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        description TEXT,
-        icon TEXT,
-        weight INTEGER,
-        rarity TEXT
-    )`);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS inventory (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id TEXT,
+      prize_name TEXT,
+      icon TEXT,
+      promo TEXT,
+      won_at TEXT
+    )
+  `);
 
-    await db.execute(`CREATE TABLE IF NOT EXISTS inventory (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT,
-        prize_id INTEGER,
-        promo_code TEXT,
-        won_at INTEGER
-    )`);
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS admins (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE,
+      is_super INTEGER DEFAULT 0
+    )
+  `);
 
-    const tables = ['users'];
-    for (const table of tables) {
-        let res = await db.execute(`PRAGMA table_info(${table})`);
-        let columns = res.rows.map(col => col.name);
-        if (table === 'users') {
-            if (!columns.includes('username')) await db.execute(`ALTER TABLE users ADD COLUMN username TEXT`);
-            if (!columns.includes('last_spin')) await db.execute(`ALTER TABLE users ADD COLUMN last_spin INTEGER`);
-            if (!columns.includes('is_banned')) await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
-        }
-    }
-
-    const defaultAdmin = 'ropogku';
+  const adminCheck = await db.execute(`SELECT COUNT(*) as count FROM admins`);
+  if (adminCheck.rows[0].count === 0) {
     await db.execute({
-        sql: `INSERT OR IGNORE INTO admins (username) VALUES (?)`,
-        args: [defaultAdmin]
+      sql: `INSERT INTO admins (username, is_super) VALUES (?, ?)`,
+      args: ['ropogku', 1]
     });
+  }
 }
 initDb();
 
-async function checkIsAdmin(userId, username) {
-    if (!username && !userId) return false;
-    let res = await db.execute(`SELECT * FROM admins`);
-    const admins = res.rows.map(a => a.username.toLowerCase());
-    
-    if (username && admins.includes(username.toLowerCase())) return true;
-    
-    if (userId) {
-        let userRes = await db.execute({ sql: `SELECT username FROM users WHERE id = ?`, args: [userId] });
-        if (userRes.rows.length > 0 && userRes.rows[0].username) {
-            if (admins.includes(userRes.rows[0].username.toLowerCase())) return true;
-        }
-    }
-    return false;
-}
-
 app.get('/api/status', async (req, res) => {
-    try {
-        const userId = req.query.userId;
-        const username = req.query.username || '';
+  try {
+    const { userId, username } = req.query;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        if (userId) {
-            await db.execute({
-                sql: `INSERT INTO users (id, username, is_banned) VALUES (?, ?, 0) ON CONFLICT(id) DO UPDATE SET username = COALESCE(?, username)`,
-                args: [userId, username, username]
-            });
-        }
+    let userRes = await db.execute({
+      sql: `SELECT * FROM users WHERE id = ?`,
+      args: [String(userId)]
+    });
 
-        const isAdmin = await checkIsAdmin(userId, username);
+    let user = userRes.rows[0];
 
-        let userRes = await db.execute({ sql: `SELECT * FROM users WHERE id = ?`, args: [userId] });
-        let isBanned = false;
-        let nextSpinTime = 0;
-
-        if (userRes.rows.length > 0) {
-            const user = userRes.rows[0];
-            isBanned = user.is_banned === 1;
-            if (user.last_spin) {
-                const cooldown = 24 * 60 * 60 * 1000;
-                const elapsed = Date.now() - user.last_spin;
-                if (elapsed < cooldown) {
-                    nextSpinTime = user.last_spin + cooldown;
-                }
-            }
-        }
-
-        let prizesRes = await db.execute(`SELECT * FROM prizes`);
-        let prizes = prizesRes.rows;
-
-        if (prizes.length === 0) {
-            await db.execute(`INSERT INTO prizes (name, description, icon, weight, rarity) VALUES ('Апгрейд до VIP', 'Випка по цене общего зала', '🎮', 50, 'common')`);
-            await db.execute(`INSERT INTO prizes (name, description, icon, weight, rarity) VALUES ('Скидка 10%', 'Действует на следующий визит', '%', 30, 'uncommon')`);
-            let p = await db.execute(`SELECT * FROM prizes`);
-            prizes = p.rows;
-        }
-
-        res.json({ isBanned, nextSpinTime, isAdmin, prizes });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: e.message });
+    if (!user) {
+      await db.execute({
+        sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, NULL, 0)`,
+        args: [String(userId), username || '']
+      });
+      user = { id: String(userId), username: username || '', last_spin: null, is_banned: 0 };
+    } else if (username && user.username !== username) {
+      await db.execute({
+        sql: `UPDATE users SET username = ? WHERE id = ?`,
+        args: [username, String(userId)]
+      });
     }
+
+    if (user.is_banned === 1) {
+      return res.json({ isBanned: true });
+    }
+
+    let canSpin = true;
+    let hoursLeft = 0;
+
+    if (user.last_spin) {
+      const lastSpinDate = new Date(user.last_spin);
+      const now = new Date();
+      const diffHours = (now - lastSpinDate) / (1000 * 60 * 60);
+      if (diffHours < 24) {
+        canSpin = false;
+        hoursLeft = Math.ceil(24 - diffHours);
+      }
+    }
+
+    res.json({ isBanned: false, canSpin, hoursLeft });
+  } catch (e) {
+    console.error('API Status Error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/inventory', async (req, res) => {
-    try {
-        const userId = req.query.userId;
-        const result = await db.execute({
-            sql: `SELECT inventory.promo_code, inventory.won_at, prizes.name, prizes.icon 
-                  FROM inventory 
-                  JOIN prizes ON inventory.prize_id = prizes.id 
-                  WHERE inventory.user_id = ? ORDER BY inventory.won_at DESC`,
-            args: [userId]
-        });
-        res.json(result.rows);
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+app.get('/api/admin/check', async (req, res) => {
+  try {
+    const { username } = req.query;
+    if (!username) return res.json({ isAdmin: false });
+
+    const cleanUsername = username.replace('@', '').toLowerCase();
+    const adminRes = await db.execute({
+      sql: `SELECT * FROM admins WHERE LOWER(username) = ?`,
+      args: [cleanUsername]
+    });
+
+    if (adminRes.rows.length > 0) {
+      res.json({ isAdmin: true, isSuper: adminRes.rows[0].is_super === 1 });
+    } else {
+      res.json({ isAdmin: false });
     }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/spin', async (req, res) => {
-    try {
-        const { userId, username } = req.body;
-        const now = Date.now();
+  try {
+    const { userId, username } = req.body;
+    if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        let userRes = await db.execute({ sql: `SELECT * FROM users WHERE id = ?`, args: [userId] });
-        
-        if (userRes.rows.length > 0) {
-            const user = userRes.rows[0];
-            if (user.is_banned) return res.status(403).json({ error: 'Заблокирован' });
-            if (user.last_spin && (now - user.last_spin) < 24 * 60 * 60 * 1000) {
-                return res.status(400).json({ error: 'Рано крутить' });
-            }
-        }
+    const userRes = await db.execute({
+      sql: `SELECT * FROM users WHERE id = ?`,
+      args: [String(userId)]
+    });
 
-        let prizesRes = await db.execute(`SELECT * FROM prizes`);
-        let prizes = prizesRes.rows;
-        if (prizes.length === 0) return res.status(400).json({ error: 'Нет призов' });
-
-        let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
-        let randomWeight = Math.random() * totalWeight;
-        let currentWeight = 0;
-        let selectedPrize = prizes[0];
-
-        for (let p of prizes) {
-            currentWeight += p.weight;
-            if (randomWeight <= currentWeight) {
-                selectedPrize = p;
-                break;
-            }
-        }
-
-        const promoCode = 'CYBER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-
-        await db.execute({
-            sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, ?, 0) ON CONFLICT(id) DO UPDATE SET last_spin = ?, username = COALESCE(?, username)`,
-            args: [userId, username, now, now, username]
-        });
-
-        await db.execute({
-            sql: `INSERT INTO inventory (user_id, prize_id, promo_code, won_at) VALUES (?, ?, ?, ?)`,
-            args: [userId, selectedPrize.id, promoCode, now]
-        });
-
-        res.json({ prize: selectedPrize, promoCode, prizesList: prizes });
-    } catch (e) {
-        console.error(e);
-        res.status(500).json({ error: e.message });
+    const user = userRes.rows[0];
+    if (!user || user.is_banned === 1) {
+      return res.status(403).json({ isBanned: true, error: 'Аккаунт заблокирован' });
     }
+
+    if (user.last_spin) {
+      const diffHours = (new Date() - new Date(user.last_spin)) / (1000 * 60 * 60);
+      if (diffHours < 24) {
+        return res.status(400).json({ error: 'Кейс можно открывать раз в 24 часа' });
+      }
+    }
+
+    const prizesRes = await db.execute(`SELECT * FROM prizes`);
+    const prizes = prizesRes.rows;
+    if (prizes.length === 0) {
+      return res.status(400).json({ error: 'Призы не настроены администратором' });
+    }
+
+    let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
+    let randomWeight = Math.random() * totalWeight;
+    let chosenPrize = prizes[0];
+
+    for (let p of prizes) {
+      if (randomWeight < p.weight) {
+        chosenPrize = p;
+        break;
+      }
+      randomWeight -= p.weight;
+    }
+
+    const promoCode = `${chosenPrize.promo_prefix || 'CYBER'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const nowIso = new Date().toISOString();
+
+    await db.execute({
+      sql: `UPDATE users SET last_spin = ? WHERE id = ?`,
+      args: [nowIso, String(userId)]
+    });
+
+    await db.execute({
+      sql: `INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)`,
+      args: [String(userId), chosenPrize.name, chosenPrize.icon || '🎁', promoCode, nowIso]
+    });
+
+    res.json({
+      prize: {
+        name: chosenPrize.name,
+        icon: chosenPrize.icon,
+        rarity: chosenPrize.rarity
+      },
+      promo: promoCode
+    });
+  } catch (e) {
+    console.error('Spin Error:', e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.get('/api/admin/data', async (req, res) => {
-    try {
-        const adminId = req.query.adminId;
-        const adminUsername = req.query.adminUsername;
-        
-        if (!await checkIsAdmin(adminId, adminUsername)) {
-            return res.status(403).json({ error: 'Доступ запрещен' });
-        }
+// Получение инвентаря с автоматической очисткой призов старше 48 часов
+app.get('/api/inventory', async (req, res) => {
+  try {
+    const { userId } = req.query;
+    if (!userId) return res.json({ items: [] });
 
-        const usersRes = await db.execute(`SELECT id, username, last_spin, is_banned FROM users`);
-        const adminsRes = await db.execute(`SELECT username FROM admins`);
-        const prizesRes = await db.execute(`SELECT * FROM prizes`);
+    const itemsRes = await db.execute({
+      sql: `SELECT * FROM inventory WHERE user_id = ? ORDER BY id DESC`,
+      args: [String(userId)]
+    });
 
-        res.json({
-            users: usersRes.rows,
-            admins: adminsRes.rows.map(a => a.username),
-            prizes: prizesRes.rows
+    const now = new Date();
+    const validItems = [];
+
+    for (const item of itemsRes.rows) {
+      const wonAt = new Date(item.won_at);
+      const diffHours = (now - wonAt) / (1000 * 60 * 60);
+
+      if (diffHours >= 48) {
+        // Удаляем просроченный приз из базы Turso
+        await db.execute({
+          sql: `DELETE FROM inventory WHERE id = ?`,
+          args: [item.id]
         });
-    } catch (e) {
-        res.status(500).json({ error: e.message });
+      } else {
+        // Добавляем оставшееся время в часах для отображения
+        validItems.push({
+          ...item,
+          hoursLeft: Math.ceil(48 - diffHours)
+        });
+      }
     }
+
+    res.json({ items: validItems });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-app.post('/api/admin/action', async (req, res) => {
-    try {
-        const { adminId, adminUsername, targetId, targetUsername, actionType, prizeData } = req.body;
-        
-        if (!await checkIsAdmin(adminId, adminUsername)) {
-            return res.status(403).json({ message: 'Доступ запрещен' });
-        }
+app.get('/api/admin/prizes', async (req, res) => {
+  try {
+    const prizesRes = await db.execute(`SELECT * FROM prizes`);
+    res.json({ prizes: prizesRes.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-        if (actionType === 'reset') {
-            if (targetId) {
-                await db.execute({ sql: `UPDATE users SET last_spin = NULL WHERE id = ?`, args: [targetId] });
-            } else if (targetUsername) {
-                const cleanName = targetUsername.replace('@', '').trim();
-                await db.execute({ sql: `UPDATE users SET last_spin = NULL WHERE username = ?`, args: [cleanName] });
-            }
-            res.json({ message: 'Таймер успешно сброшен!' });
-        } else if (actionType === 'ban') {
-            let userRes;
-            if (targetId) {
-                userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE id = ?`, args: [targetId] });
-            } else if (targetUsername) {
-                const cleanName = targetUsername.replace('@', '').trim();
-                userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE username = ?`, args: [cleanName] });
-            }
+app.post('/api/admin/add-prize', async (req, res) => {
+  try {
+    const { name, icon, rarity, weight, promo_prefix } = req.body;
+    await db.execute({
+      sql: `INSERT INTO prizes (name, icon, rarity, weight, promo_prefix) VALUES (?, ?, ?, ?, ?)`,
+      args: [name, icon || '🎁', rarity || 'common', Number(weight) || 1, promo_prefix || 'PROMO']
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-            if (!userRes || userRes.rows.length === 0) {
-                return res.status(404).json({ message: 'Пользователь не найден в базе' });
-            }
+app.post('/api/admin/delete-prize', async (req, res) => {
+  try {
+    const { prizeId } = req.body;
+    await db.execute({
+      sql: `DELETE FROM prizes WHERE id = ?`,
+      args: [prizeId]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-            let newBanState = userRes.rows[0].is_banned === 1 ? 0 : 1;
+app.post('/api/admin/update-prize', async (req, res) => {
+  try {
+    const { prizeId, weight } = req.body;
+    await db.execute({
+      sql: `UPDATE prizes SET weight = ? WHERE id = ?`,
+      args: [Number(weight), prizeId]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
 
-            if (targetId) {
-                await db.execute({ sql: `UPDATE users SET is_banned = ? WHERE id = ?`, args: [newBanState, targetId] });
-            } else if (targetUsername) {
-                const cleanName = targetUsername.replace('@', '').trim();
-                await db.execute({ sql: `UPDATE users SET is_banned = ? WHERE username = ?`, args: [newBanState, cleanName] });
-            }
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const usersCount = await db.execute(`SELECT COUNT(*) as count FROM users`);
+    const bannedCount = await db.execute(`SELECT COUNT(*) as count FROM users WHERE is_banned = 1`);
+    const spinsCount = await db.execute(`SELECT COUNT(*) as count FROM inventory`);
 
-            res.json({ message: newBanState === 1 ? 'Пользователь забанен' : 'Пользователь разбанен' });
-        } else if (actionType === 'add_admin') {
-            if (!targetUsername) return res.status(400).json({ message: 'Укажите юзернейм' });
-            const cleanName = targetUsername.replace('@', '').trim();
-            await db.execute({ sql: `INSERT OR IGNORE INTO admins (username) VALUES (?)`, args: [cleanName] });
-            res.json({ message: `Админ @${cleanName} добавлен!` });
-        } else if (actionType === 'remove_admin') {
-            const cleanName = targetUsername.replace('@', '').trim();
-            if (cleanName.toLowerCase() === 'ropogku') {
-                return res.status(400).json({ message: 'Нельзя удалить главного администратора' });
-            }
-            await db.execute({ sql: `DELETE FROM admins WHERE username = ?`, args: [cleanName] });
-            res.json({ message: `Админ @${cleanName} удален` });
-        } else if (actionType === 'add_prize') {
-            const { name, description, icon, weight, rarity } = prizeData;
-            await db.execute({
-                sql: `INSERT INTO prizes (name, description, icon, weight, rarity) VALUES (?, ?, ?, ?, ?)`,
-                args: [name, description, icon || '🎁', weight || 10, rarity || 'common']
-            });
-            res.json({ message: 'Приз успешно добавлен!' });
-        } else if (actionType === 'delete_prize') {
-            await db.execute({
-                sql: `DELETE FROM prizes WHERE id = ?`,
-                args: [prizeData.id]
-            });
-            res.json({ message: 'Приз удален!' });
-        }
-    } catch (e) {
-        res.status(500).json({ message: e.message });
-    }
+    res.json({
+      totalUsers: usersCount.rows[0].count,
+      bannedUsers: bannedCount.rows[0].count,
+      totalSpins: spinsCount.rows[0].count
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/banned-list', async (req, res) => {
+  try {
+    const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1`);
+    res.json({ bannedUsers: banned.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/users-list', async (req, res) => {
+  try {
+    const users = await db.execute(`SELECT id, username, is_banned FROM users`);
+    res.json({ users: users.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/ban', async (req, res) => {
+  try {
+    const { targetUsername, banState } = req.body;
+    const cleanUser = targetUsername.replace('@', '').toLowerCase();
+    await db.execute({
+      sql: `UPDATE users SET is_banned = ? WHERE LOWER(username) = ? OR id = ?`,
+      args: [Number(banState), cleanUser, targetUsername]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/reset-timer', async (req, res) => {
+  try {
+    const { targetUsername } = req.body;
+    const cleanUser = targetUsername.replace('@', '').toLowerCase();
+    await db.execute({
+      sql: `UPDATE users SET last_spin = NULL WHERE LOWER(username) = ? OR id = ?`,
+      args: [cleanUser, targetUsername]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/list', async (req, res) => {
+  try {
+    const admins = await db.execute(`SELECT username, is_super FROM admins`);
+    res.json({ admins: admins.rows });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/add-admin', async (req, res) => {
+  try {
+    const { newAdminUsername } = req.body;
+    const cleanUser = newAdminUsername.replace('@', '').toLowerCase();
+    await db.execute({
+      sql: `INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, 0)`,
+      args: [cleanUser]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/remove-admin', async (req, res) => {
+  try {
+    const { targetAdminUsername } = req.body;
+    const cleanUser = targetAdminUsername.replace('@', '').toLowerCase();
+    await db.execute({
+      sql: `DELETE FROM admins WHERE LOWER(username) = ?`,
+      args: [cleanUser]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
