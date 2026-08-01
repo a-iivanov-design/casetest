@@ -55,7 +55,6 @@ async function initDb() {
     )
   `);
 
-  // Удаляем старые битые записи пользователей без юзернейма (вроде null)
   await db.execute(`DELETE FROM users WHERE username IS NULL OR username = '' OR username = 'null'`);
 
   const adminCheck = await db.execute(`SELECT COUNT(*) as count FROM admins`);
@@ -77,23 +76,15 @@ app.get('/api/status', async (req, res) => {
     if (!cleanUsername) return res.status(400).json({ error: 'Missing username' });
 
     let userRes = await db.execute({
-      sql: `SELECT * FROM users WHERE username = ?`,
-      args: [cleanUsername]
+      sql: `SELECT * FROM users WHERE username = ? OR id = ?`,
+      args: [cleanUsername, String(userId)]
     });
 
     let user = userRes.rows[0];
 
     if (!user) {
-      await db.execute({
-        sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, NULL, 0)`,
-        args: [String(userId), cleanUsername]
-      });
-      user = { id: String(userId), username: cleanUsername, last_spin: null, is_banned: 0 };
-    } else {
-      await db.execute({
-        sql: `UPDATE users SET id = ? WHERE username = ?`,
-        args: [String(userId), cleanUsername]
-      });
+      res.json({ isBanned: false, canSpin: true });
+      return;
     }
 
     if (user.is_banned === 1) {
@@ -101,19 +92,20 @@ app.get('/api/status', async (req, res) => {
     }
 
     let canSpin = true;
-    let hoursLeft = 0;
+    let nextSpinTime = '';
 
     if (user.last_spin) {
       const lastSpinDate = new Date(user.last_spin);
+      const nextAllowedDate = new Date(lastSpinDate.getTime() + 24 * 60 * 60 * 1000);
       const now = new Date();
-      const diffHours = (now - lastSpinDate) / (1000 * 60 * 60);
-      if (diffHours < 24) {
+
+      if (now < nextAllowedDate) {
         canSpin = false;
-        hoursLeft = Math.ceil(24 - diffHours);
+        nextSpinTime = nextAllowedDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
       }
     }
 
-    res.json({ isBanned: false, canSpin, hoursLeft });
+    res.json({ isBanned: false, canSpin, nextSpinTime });
   } catch (e) {
     console.error('API Status Error:', e);
     res.status(500).json({ error: e.message });
@@ -147,19 +139,21 @@ app.post('/api/spin', async (req, res) => {
     const cleanUsername = username ? username.replace('@', '').toLowerCase() : '';
     if (!cleanUsername) return res.status(400).json({ error: 'Missing username' });
 
-    const userRes = await db.execute({
-      sql: `SELECT * FROM users WHERE username = ?`,
-      args: [cleanUsername]
+    let userRes = await db.execute({
+      sql: `SELECT * FROM users WHERE username = ? OR id = ?`,
+      args: [cleanUsername, String(userId)]
     });
 
-    const user = userRes.rows[0];
-    if (!user || user.is_banned === 1) {
+    let user = userRes.rows[0];
+
+    if (user && user.is_banned === 1) {
       return res.status(403).json({ isBanned: true, error: 'Аккаунт заблокирован' });
     }
 
-    if (user.last_spin) {
-      const diffHours = (new Date() - new Date(user.last_spin)) / (1000 * 60 * 60);
-      if (diffHours < 24) {
+    if (user && user.last_spin) {
+      const lastSpinDate = new Date(user.last_spin);
+      const nextAllowedDate = new Date(lastSpinDate.getTime() + 24 * 60 * 60 * 1000);
+      if (new Date() < nextAllowedDate) {
         return res.status(400).json({ error: 'Кейс можно открывать раз в 24 часа' });
       }
     }
@@ -185,10 +179,17 @@ app.post('/api/spin', async (req, res) => {
     const promoCode = `${chosenPrize.promo_prefix || 'CYBER'}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const nowIso = new Date().toISOString();
 
-    await db.execute({
-      sql: `UPDATE users SET last_spin = ? WHERE username = ?`,
-      args: [nowIso, cleanUsername]
-    });
+    if (user) {
+      await db.execute({
+        sql: `UPDATE users SET last_spin = ?, id = ? WHERE username = ?`,
+        args: [nowIso, String(userId), cleanUsername]
+      });
+    } else {
+      await db.execute({
+        sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, ?, 0)`,
+        args: [String(userId), cleanUsername, nowIso]
+      });
+    }
 
     await db.execute({
       sql: `INSERT INTO inventory (user_id, prize_name, icon, promo, won_at) VALUES (?, ?, ?, ?, ?)`,
@@ -345,10 +346,26 @@ app.post('/api/admin/delete-user', async (req, res) => {
   try {
     const { targetIdentifier } = req.body;
     const cleanUser = targetIdentifier ? String(targetIdentifier).replace('@', '').toLowerCase() : '';
+    
+    // Получаем ID пользователя перед удалением, чтобы также полностью стереть его куки/инвентарь и заблокировать обход таймера
+    const userRes = await db.execute({
+      sql: `SELECT id FROM users WHERE LOWER(username) = ? OR id = ?`,
+      args: [cleanUser, String(targetIdentifier)]
+    });
+
+    if (userRes.rows.length > 0) {
+      const foundUserId = userRes.rows[0].id;
+      await db.execute({
+        sql: `DELETE FROM inventory WHERE user_id = ?`,
+        args: [foundUserId]
+      });
+    }
+
     await db.execute({
       sql: `DELETE FROM users WHERE LOWER(username) = ? OR id = ?`,
       args: [cleanUser, String(targetIdentifier)]
     });
+
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
