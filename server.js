@@ -1,6 +1,6 @@
-const express = require('express');
-const cors = require('cors');
-const { createClient } = require('@libsql/client');
+import express from 'express';
+import cors from 'cors';
+import { createClient } from '@libsql/client';
 
 const app = express();
 app.use(express.json());
@@ -30,7 +30,6 @@ app.post('/api/inventory/cleanup', async (req, res) => {
   try {
     const thresholdTime = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     
-    // Получаем просроченные элементы для логирования или безопасного удаления
     const expiredItems = await db.execute({
       sql: 'SELECT id FROM inventory WHERE created_at < ?',
       args: [thresholdTime]
@@ -39,7 +38,6 @@ app.post('/api/inventory/cleanup', async (req, res) => {
     if (expiredItems.rows.length > 0) {
       const idsToDelete = expiredItems.rows.map(row => row.id);
       
-      // Удаляем пакетно по ID
       for (const id of idsToDelete) {
         await db.execute({
           sql: 'DELETE FROM inventory WHERE id = ?',
