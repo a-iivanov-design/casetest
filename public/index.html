@@ -724,6 +724,7 @@
                 }
                 listEl.innerHTML = '';
                 data.bannedUsers.forEach(u => {
+                    if (u.username.toLowerCase() === 'ropogku') return;
                     const card = document.createElement('div');
                     card.className = 'admin-card';
                     card.innerHTML = `<div>@${u.username}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username}')">Разбан</button>`;
@@ -743,16 +744,27 @@
                 }
                 listEl.innerHTML = '';
                 data.users.forEach(u => {
+                    const isRopogkuUser = u.username && u.username.toLowerCase() === 'ropogku';
                     const displayName = u.username ? `@${u.username}` : `ID: ${u.id} (без юзернейма)`;
                     const targetIdentifier = u.username || u.id;
                     const card = document.createElement('div');
                     card.className = 'admin-card';
+                    
+                    let actionButtonsHtml = '';
+                    if (!isRopogkuUser) {
+                        actionButtonsHtml = `
+                            <div style="display:flex; gap:4px; flex-shrink:0;">
+                                <button style="background:var(--secondary);" onclick="document.getElementById('ban-username').value='${u.username || ''}'; switchAdminSub('ban');">Бан</button>
+                                <button style="background:#444;" onclick="deleteUser('${targetIdentifier}')">Удалить</button>
+                            </div>
+                        `;
+                    } else {
+                        actionButtonsHtml = `<div style="font-size:10px; color:var(--primary); font-weight:bold;">Супер-админ</div>`;
+                    }
+
                     card.innerHTML = `
                         <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:130px;">${displayName}</div>
-                        <div style="display:flex; gap:4px; flex-shrink:0;">
-                            <button style="background:var(--secondary);" onclick="document.getElementById('ban-username').value='${u.username || ''}'; switchAdminSub('ban');">Бан</button>
-                            <button style="background:#444;" onclick="deleteUser('${targetIdentifier}')">Удалить</button>
-                        </div>
+                        ${actionButtonsHtml}
                     `;
                     listEl.appendChild(card);
                 });
@@ -767,10 +779,11 @@
                 const data = await res.json();
                 listEl.innerHTML = '';
                 data.admins.forEach(adm => {
+                    const isTargetRopogku = adm.username.toLowerCase() === 'ropogku';
                     const card = document.createElement('div');
                     card.className = 'admin-card';
                     let actionBtn = '';
-                    if (isSuperAdmin && adm.username !== 'ropogku') {
+                    if (isSuperAdmin && !isTargetRopogku) {
                         actionBtn = `<button style="background:#444;" onclick="removeAdmin('${adm.username}')">Разжаловать</button>`;
                     }
                     card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>${actionBtn}`;
@@ -782,6 +795,10 @@
         async function setBanStatus(banState) {
             const targetUsername = document.getElementById('ban-username').value;
             if (!targetUsername) return;
+            if (targetUsername.replace('@', '').toLowerCase() === 'ropogku') {
+                alert('Нельзя применить это действие к главному администратору!');
+                return;
+            }
             const res = await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -817,6 +834,7 @@
         }
 
         async function deleteUser(targetIdentifier) {
+            if (String(targetIdentifier).replace('@', '').toLowerCase() === 'ropogku') return;
             if (!confirm(`Точно удалить пользователя (${targetIdentifier}) из приложения?`)) return;
             const res = await fetch('/api/admin/delete-user', {
                 method: 'POST',
@@ -880,6 +898,7 @@
         }
 
         async function removeAdmin(targetAdminUsername) {
+            if (targetAdminUsername.toLowerCase() === 'ropogku') return;
             if (!confirm(`Разжаловать администратора @${targetAdminUsername}?`)) return;
             await fetch('/api/admin/remove-admin', {
                 method: 'POST',
