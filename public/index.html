@@ -286,7 +286,7 @@
             font-weight: bold;
         }
 
-        .admin-card button {
+        .admin-card button, .inventory-card button {
             background: var(--secondary);
             color: #fff;
             border: none;
@@ -656,16 +656,36 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     card.innerHTML = `
-                        <div>
-                            <div style="font-weight:bold; margin-bottom:2px;">${getIconHtml(item.icon, '20px')} ${item.prize_name}</div>
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">
+                            <div style="font-weight:bold; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis;">${getIconHtml(item.icon, '20px')} ${item.prize_name}</div>
                             <div style="font-size:10px; color:#777;">Код: <span style="color:var(--primary);">${item.promo}</span></div>
+                            <div style="font-size:9px; color:var(--secondary); margin-top:2px;">Осталось: ${item.hoursLeft}ч</div>
                         </div>
-                        <div style="text-align:right; font-size:10px; color:var(--secondary);">Осталось: ${item.hoursLeft}ч</div>
+                        <button onclick="deleteInventoryItem(${item.id})">Удалить</button>
                     `;
                     listEl.appendChild(card);
                 });
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
+            }
+        }
+
+        async function deleteInventoryItem(itemId) {
+            if (!confirm('Удалить этот приз из инвентаря?')) return;
+            try {
+                const res = await fetch('/api/inventory/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, itemId })
+                });
+                const data = await res.json();
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+                loadInventory();
+            } catch (e) {
+                alert('Ошибка при удалении');
             }
         }
 
