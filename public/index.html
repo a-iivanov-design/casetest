@@ -446,7 +446,7 @@
     <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 120px); padding-bottom: 10px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
-            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
+            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Статистика</button>
             <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px;">Баны</button>
             <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Пользователи</button>
             <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:6px;">Админы</button>
@@ -511,14 +511,19 @@
             return icon;
         }
 
-        // Функция форматирования юзернейма: если в базе записан id вместо юзернейма, превращаем в читаемый вид
+        // Строгое форматирование: убираем лишние префиксы, технические нули и выводим читаемый юзернейм или ID
         function formatUsername(rawName) {
-            if (!rawName) return '';
+            if (!rawName) return '@unknown';
             let s = String(rawName).trim();
             if (s.startsWith('@')) s = s.substring(1);
             if (s.startsWith('id_')) s = s.replace('id_', '');
             
-            // Если это чисто цифры (Telegram ID), то отображаем как @user_ID
+            // Если в строке точка с нулем на конце (например, от баз данных типа float/число) — убираем её
+            if (s.includes('.')) {
+                s = s.split('.')[0];
+            }
+
+            // Если это просто числовой Telegram ID, отображаем как @user_ID
             if (/^\d+$/.test(s)) {
                 return '@user_' + s;
             }
@@ -791,35 +796,53 @@
         }
 
         async function setBanStatus(banState) {
-            const targetUsername = document.getElementById('ban-username').value;
-            if (!targetUsername) return;
-            await fetch('/api/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState })
-            });
-            alert('Готово');
-            loadBannedUsers();
+            const targetUsername = document.getElementById('ban-username').value.trim();
+            if (!targetUsername) return alert('Введите юзернейм');
+            
+            try {
+                const response = await fetch('/api/admin/ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username, targetUsername, banState })
+                });
+                const resData = await response.json();
+                if (response.status !== 200) {
+                    alert(resData.error || 'Ошибка при изменении статуса бана');
+                    return;
+                }
+                alert(banState === 1 ? 'Пользователь успешно забанен!' : 'Пользователь разбанен!');
+                loadBannedUsers();
+                loadAllUsers();
+            } catch (e) {
+                alert('Ошибка соединения с сервером');
+            }
         }
 
         async function resetTimer() {
-            const targetUsername = document.getElementById('ban-username').value;
-            if (!targetUsername) return;
-            await fetch('/api/admin/reset-timer', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername })
-            });
-            alert('Таймер сброшен!');
+            const targetUsername = document.getElementById('ban-username').value.trim();
+            if (!targetUsername) return alert('Введите юзернейм');
+            try {
+                await fetch('/api/admin/reset-timer', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username, targetUsername })
+                });
+                alert('Таймер прокрута сброшен!');
+            } catch (e) {
+                alert('Ошибка соединения');
+            }
         }
 
         async function quickUnban(targetUsername) {
-            await fetch('/api/admin/ban', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
-            });
-            loadBannedUsers();
+            try {
+                await fetch('/api/admin/ban', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
+                });
+                loadBannedUsers();
+                loadAllUsers();
+            } catch (e) {}
         }
 
         async function updateWeight(prizeId) {
@@ -893,6 +916,11 @@
                 if (response.status !== 200) {
                     isSpinning = false;
                     btn.disabled = false;
+                    if (serverData.isBanned) {
+                        document.getElementById('banned-screen').style.display = 'flex';
+                        btn.innerText = 'Заблокирован';
+                        return;
+                    }
                     msg.style.color = 'var(--secondary)';
                     msg.innerText = serverData.error || 'Ошибка';
                     return;
