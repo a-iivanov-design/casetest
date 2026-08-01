@@ -55,6 +55,9 @@ async function initDb() {
     )
   `);
 
+  // Удаляем старые битые записи пользователей без юзернейма (вроде null)
+  await db.execute(`DELETE FROM users WHERE username IS NULL OR username = '' OR username = 'null'`);
+
   const adminCheck = await db.execute(`SELECT COUNT(*) as count FROM admins`);
   if (adminCheck.rows[0].count === 0) {
     await db.execute({
@@ -87,7 +90,6 @@ app.get('/api/status', async (req, res) => {
       });
       user = { id: String(userId), username: cleanUsername, last_spin: null, is_banned: 0 };
     } else {
-      // Обновляем id на актуальный при входе
       await db.execute({
         sql: `UPDATE users SET id = ? WHERE username = ?`,
         args: [String(userId), cleanUsername]
@@ -293,7 +295,7 @@ app.post('/api/admin/update-prize', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
   try {
-    const usersCount = await db.execute(`SELECT COUNT(*) as count FROM users`);
+    const usersCount = await db.execute(`SELECT COUNT(*) as count FROM users WHERE username IS NOT NULL AND username != ''`);
     const bannedCount = await db.execute(`SELECT COUNT(*) as count FROM users WHERE is_banned = 1`);
     const spinsCount = await db.execute(`SELECT COUNT(*) as count FROM inventory`);
 
@@ -309,7 +311,7 @@ app.get('/api/admin/stats', async (req, res) => {
 
 app.get('/api/admin/banned-list', async (req, res) => {
   try {
-    const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1`);
+    const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1 AND username IS NOT NULL`);
     res.json({ bannedUsers: banned.rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -318,7 +320,7 @@ app.get('/api/admin/banned-list', async (req, res) => {
 
 app.get('/api/admin/users-list', async (req, res) => {
   try {
-    const users = await db.execute(`SELECT username, is_banned FROM users`);
+    const users = await db.execute(`SELECT id, username, is_banned FROM users WHERE username IS NOT NULL AND username != ''`);
     res.json({ users: users.rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -341,11 +343,11 @@ app.post('/api/admin/ban', async (req, res) => {
 
 app.post('/api/admin/delete-user', async (req, res) => {
   try {
-    const { targetUsername } = req.body;
-    const cleanUser = targetUsername.replace('@', '').toLowerCase();
+    const { targetIdentifier } = req.body;
+    const cleanUser = targetIdentifier ? String(targetIdentifier).replace('@', '').toLowerCase() : '';
     await db.execute({
-      sql: `DELETE FROM users WHERE LOWER(username) = ?`,
-      args: [cleanUser]
+      sql: `DELETE FROM users WHERE LOWER(username) = ? OR id = ?`,
+      args: [cleanUser, String(targetIdentifier)]
     });
     res.json({ success: true });
   } catch (e) {
@@ -382,6 +384,23 @@ app.post('/api/admin/add-admin', async (req, res) => {
     const cleanUser = newAdminUsername.replace('@', '').toLowerCase();
     await db.execute({
       sql: `INSERT OR IGNORE INTO admins (username, is_super) VALUES (?, 0)`,
+      args: [cleanUser]
+    });
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/remove-admin', async (req, res) => {
+  try {
+    const { targetAdminUsername } = req.body;
+    const cleanUser = targetAdminUsername.replace('@', '').toLowerCase();
+    if (cleanUser === 'ropogku') {
+      return res.status(400).json({ error: 'Нельзя удалить главного администратора' });
+    }
+    await db.execute({
+      sql: `DELETE FROM admins WHERE LOWER(username) = ?`,
       args: [cleanUser]
     });
     res.json({ success: true });
