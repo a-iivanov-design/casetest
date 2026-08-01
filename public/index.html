@@ -785,13 +785,22 @@
                 }
                 listEl.innerHTML = '';
                 data.items.forEach(item => {
+                    let formattedDate = '';
+                    if (item.won_at) {
+                        const dateObj = new Date(item.won_at);
+                        if (!isNaN(dateObj)) {
+                            formattedDate = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+                        }
+                    }
+
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     card.innerHTML = `
                         <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">
                             <div style="font-weight:500; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis;">${getIconHtml(item.icon, '22px')} ${item.prize_name}</div>
                             <div style="font-size:11px; color:var(--text-muted);">Код: <span style="color:var(--text-main); font-weight:600;">${item.promo}</span></div>
-                            <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Срок: ${item.hoursLeft}ч</div>
+                            ${formattedDate ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Получено: ${formattedDate}</div>` : ''}
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">Срок: ${item.hoursLeft}ч</div>
                         </div>
                         <button onclick="deleteInventoryItem(${item.id})">Удалить</button>
                     `;
@@ -1145,13 +1154,11 @@
                 btn.disabled = true;
                 btn.innerText = 'ОТКРЫТЬ КЕЙС';
                 
-                // Выводим данные в красивое модальное окно победы
                 document.getElementById('win-modal-icon').innerHTML = getIconHtml(winningPrize.icon, '50px');
                 document.getElementById('win-modal-title').innerText = winningPrize.name;
                 document.getElementById('win-modal-promo').innerText = serverData.promo;
                 document.getElementById('win-modal').style.display = 'flex';
                 
-                // Тактильный отклик в Telegram
                 if (window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                     window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
