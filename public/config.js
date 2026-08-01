@@ -1,8 +1,17 @@
 window.APP_CONFIG = {
-    clubName: "CYBER CASE",
-    logoImage: "https://via.placeholder.com/150", 
-    primaryColor: "#00e676",
-    secondaryColor: "#ff1744",
-    backgroundColor: "#121212",
-    cardBackground: "#212121"
+    // Название клуба (отображается в шапке и как текстовый логотип, если нет картинки)
+    clubName: "RushB",
+    
+    // Ссылка на картинку-логотип (если оставить пустой "", будет красиво отображаться текст названия выше)
+    logoUrl: "", 
+
+    // Брендовые цвета интерфейса
+    primaryColor: "#a3ff00", // Салатовый неоновый акцент
+    bgDark: "#0f0f11",       // Глубокий темный фон приложения
+    cardBg: "#18181b",       // Цвет карточек и блоков
+    
+    // Тексты
+    subtitle: "БЕСПЛАТНАЯ РУЛЕТКА",
+    spinButtonText: "КРУТИМ...",
+    cooldownText: "1 бесплатный прокрут каждые 24 часа"
 };
