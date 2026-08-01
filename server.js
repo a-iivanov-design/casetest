@@ -246,6 +246,22 @@ app.get('/api/inventory', async (req, res) => {
   }
 });
 
+app.post('/api/inventory/delete', async (req, res) => {
+  try {
+    const { userId, itemId } = req.body;
+    if (!userId || !itemId) return res.status(400).json({ error: 'Missing parameters' });
+
+    await db.execute({
+      sql: `DELETE FROM inventory WHERE id = ? AND user_id = ?`,
+      args: [itemId, String(userId)]
+    });
+
+    res.json({ success: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 app.get('/api/admin/prizes', async (req, res) => {
   try {
     const prizesRes = await db.execute(`SELECT * FROM prizes`);
