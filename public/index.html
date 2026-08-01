@@ -30,7 +30,6 @@
             justify-content: space-between;
         }
 
-        /* Верхняя панель */
         .top-bar {
             width: 100%;
             display: flex;
@@ -54,7 +53,6 @@
             gap: 5px;
         }
 
-        /* Логотип клуба */
         .header-logo-container {
             display: flex;
             flex-direction: column;
@@ -77,7 +75,6 @@
             text-transform: uppercase;
         }
 
-        /* Секции */
         .view-section {
             display: none;
             flex-direction: column;
@@ -92,7 +89,6 @@
             display: flex;
         }
 
-        /* Современное окно рулетки без неона */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -163,7 +159,6 @@
         .prize-rare .prize-name { color: #ab47bc; }
         .prize-epic .prize-name { color: var(--primary); }
 
-        /* Центральный маркер */
         .selector-center-line {
             position: absolute;
             top: 0;
@@ -245,7 +240,6 @@
             padding: 0 10px;
         }
 
-        /* Инвентарь с поддержкой прокрутки */
         .inventory-wrapper {
             width: 100%;
             max-width: 320px;
@@ -325,7 +319,6 @@
             gap: 8px;
         }
 
-        /* Нижнее меню переключения */
         .bottom-nav-toggle {
             width: 100%;
             max-width: 320px;
@@ -391,7 +384,6 @@
         </div>
     </div>
 
-    <!-- Верхняя панель управления -->
     <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Админка
@@ -401,12 +393,10 @@
         </button>
     </div>
 
-    <!-- Логотип клуба -->
     <div class="header-logo-container" id="header-logo-box">
         <div class="club-logo-text" id="club-logo-text">RushB</div>
     </div>
 
-    <!-- Секция Рулетки -->
     <div id="section-case" class="view-section active">
         <div class="roller-container-wrapper">
             <div class="selector-center-line"></div>
@@ -423,7 +413,6 @@
         </div>
     </div>
 
-    <!-- Секция Инвентаря с прокруткой -->
     <div id="section-inventory" class="view-section" style="justify-content: flex-start;">
         <div class="inventory-wrapper">
             <div class="inventory-list" id="inventory-list">
@@ -432,7 +421,6 @@
         </div>
     </div>
 
-    <!-- Секция Админки с прокруткой -->
     <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 120px); padding-bottom: 10px;">
         <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; max-width:320px; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px; font-size: 11px;">Призы</button>
@@ -485,7 +473,6 @@
         </div>
     </div>
 
-    <!-- Нижнее меню переключения -->
     <div class="bottom-nav-toggle" id="bottom-nav-toggle">
         <button class="nav-toggle-btn active" id="btn-tab-case" onclick="switchTab('case')">Рулетка</button>
         <button class="nav-toggle-btn" id="btn-tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
@@ -566,7 +553,7 @@
 
         async function checkAdminAccess() {
             try {
-                const res = await fetch(`/api/admin/check?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/check?username=${username}`);
                 const data = await res.json();
                 if (data.isAdmin) {
                     isAdminUser = true;
@@ -693,7 +680,7 @@
             const listEl = document.getElementById('admin-prizes-list');
             listEl.innerHTML = '<div style="text-align: center; color: #666;">Загрузка...</div>';
             try {
-                const res = await fetch(`/api/admin/prizes?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/prizes?username=${username}`);
                 const data = await res.json();
                 if (!data.prizes) return;
                 cachedServerPrizes = data.prizes;
@@ -716,7 +703,7 @@
         async function loadStats() {
             const statsBox = document.getElementById('stats-content');
             try {
-                const res = await fetch(`/api/admin/stats?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/stats?username=${username}`);
                 const data = await res.json();
                 statsBox.innerHTML = `
                     <div>🎮 Всего открытий: <b>${data.totalSpins}</b></div>
@@ -729,7 +716,7 @@
         async function loadBannedUsers() {
             const listEl = document.getElementById('banned-users-list');
             try {
-                const res = await fetch(`/api/admin/banned-list?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/banned-list?username=${username}`);
                 const data = await res.json();
                 if (!data.bannedUsers || data.bannedUsers.length === 0) {
                     listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Нет забаненных</div>';
@@ -748,7 +735,7 @@
         async function loadAllUsers() {
             const listEl = document.getElementById('all-users-list');
             try {
-                const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/users-list?username=${username}`);
                 const data = await res.json();
                 if (!data.users || data.users.length === 0) {
                     listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Нет пользователей</div>';
@@ -776,7 +763,7 @@
             const listEl = document.getElementById('admins-list-container');
             if (isSuperAdmin) document.getElementById('super-admin-section').style.display = 'block';
             try {
-                const res = await fetch(`/api/admin/list?userId=${userId}&username=${username}`);
+                const res = await fetch(`/api/admin/list?username=${username}`);
                 const data = await res.json();
                 listEl.innerHTML = '';
                 data.admins.forEach(adm => {
@@ -798,7 +785,7 @@
             const res = await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState })
+                body: JSON.stringify({ username, targetUsername, banState })
             });
             const data = await res.json();
             if (data.error) {
@@ -815,7 +802,7 @@
             await fetch('/api/admin/reset-timer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername })
+                body: JSON.stringify({ username, targetUsername })
             });
             alert('Таймер сброшен!');
         }
@@ -824,7 +811,7 @@
             await fetch('/api/admin/ban', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetUsername, banState: 0 })
+                body: JSON.stringify({ username, targetUsername, banState: 0 })
             });
             loadBannedUsers();
         }
@@ -834,7 +821,7 @@
             const res = await fetch('/api/admin/delete-user', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetIdentifier })
+                body: JSON.stringify({ username, targetIdentifier })
             });
             const data = await res.json();
             if (data.error) {
@@ -849,7 +836,7 @@
             await fetch('/api/admin/update-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, prizeId, weight })
+                body: JSON.stringify({ username, prizeId, weight })
             });
         }
 
@@ -864,7 +851,7 @@
             await fetch('/api/admin/add-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, name, icon, rarity, weight, promo_prefix })
+                body: JSON.stringify({ username, name, icon, rarity, weight, promo_prefix })
             });
             loadAdminPrizes();
             alert('Приз добавлен');
@@ -875,7 +862,7 @@
             await fetch('/api/admin/delete-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, prizeId })
+                body: JSON.stringify({ username, prizeId })
             });
             loadAdminPrizes();
         }
@@ -886,7 +873,7 @@
             await fetch('/api/admin/add-admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, newAdminUsername })
+                body: JSON.stringify({ username, newAdminUsername })
             });
             alert('Админ добавлен');
             loadAdminsList();
@@ -897,7 +884,7 @@
             await fetch('/api/admin/remove-admin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId, username, targetAdminUsername })
+                body: JSON.stringify({ username, targetAdminUsername })
             });
             loadAdminsList();
         }
