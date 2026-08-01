@@ -28,7 +28,7 @@
             height: 100vh;
             margin: 0;
             overflow: hidden;
-            padding: 12px 20px 20px 20px;
+            padding: 10px 16px 16px 16px;
             box-sizing: border-box;
             justify-content: space-between;
             -webkit-font-smoothing: antialiased;
@@ -46,13 +46,15 @@
             pointer-events: none;
         }
 
+        /* Верхняя панель: размещаем кнопку и логотип на одной линии */
         .top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            min-height: 36px;
+            height: 44px;
             flex-shrink: 0;
+            position: relative;
         }
 
         .admin-entry-btn {
@@ -70,30 +72,33 @@
             align-items: center;
             gap: 6px;
             transition: all 0.25s ease;
+            z-index: 5;
         }
         .admin-entry-btn:hover {
             color: var(--text-main);
             background: rgba(255, 255, 255, 0.1);
         }
 
+        /* Логотип в шапке */
         .header-logo-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            flex-direction: column;
             align-items: center;
-            text-align: center;
-            flex-shrink: 0;
-            margin: 4px 0 12px 0; /* Уменьшили отступы, чтобы всё помещалось */
+            justify-content: center;
+            height: 100%;
         }
 
         .club-logo-img {
-            max-height: 52px; /* Сделали логотип гармоничным по высоте */
-            max-width: 180px;
+            max-height: 40px; /* Увеличили размер логотипа */
+            max-width: 160px;
             object-fit: contain;
-            border-radius: 10px;
+            border-radius: 8px;
         }
 
         .club-logo-text {
-            font-size: 20px;
+            font-size: 18px;
             font-weight: 600;
             color: var(--text-main);
             letter-spacing: -0.5px;
@@ -111,6 +116,7 @@
             flex: 1;
             box-sizing: border-box;
             overflow: hidden;
+            justify-content: center; /* Центрируем содержимое кейса по вертикали */
         }
         .view-section.active {
             display: flex;
@@ -129,11 +135,11 @@
             align-items: center;
             justify-content: center;
             font-size: 60px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             position: relative;
             animation: floatCase 6s ease-in-out infinite;
-            overflow: visible; /* Разрешаем элементам внутри выходить за границы без обрезания */
+            overflow: visible;
         }
         .case-preview-box img {
             width: 75px;
@@ -268,6 +274,7 @@
             flex-direction: column;
             align-items: center;
             flex-shrink: 0;
+            margin-top: 15px;
         }
 
         button.spin-btn {
@@ -486,6 +493,7 @@
         </div>
     </div>
 
+    <!-- Шапка приложения с кнопкой и центрированным логотипом -->
     <div class="top-bar">
         <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
             ← Панель
@@ -493,10 +501,10 @@
         <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">
             ✕ Закрыть
         </button>
-    </div>
 
-    <div class="header-logo-container" id="header-logo-box">
-        <div class="club-logo-text" id="club-logo-text">CASE <span>LOUNGE</span></div>
+        <div class="header-logo-container" id="header-logo-box">
+            <div class="club-logo-text" id="club-logo-text">CASE <span>LOUNGE</span></div>
+        </div>
     </div>
 
     <div id="section-case" class="view-section active">
