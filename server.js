@@ -159,6 +159,8 @@ app.post('/api/spin', async (req, res) => {
 
         let prizesRes = await db.execute(`SELECT * FROM prizes`);
         let prizes = prizesRes.rows;
+        if (prizes.length === 0) return res.status(400).json({ error: 'Нет призов' });
+
         let totalWeight = prizes.reduce((sum, p) => sum + p.weight, 0);
         let randomWeight = Math.random() * totalWeight;
         let currentWeight = 0;
@@ -184,7 +186,7 @@ app.post('/api/spin', async (req, res) => {
             args: [userId, selectedPrize.id, promoCode, now]
         });
 
-        res.json({ prize: selectedPrize, promoCode });
+        res.json({ prize: selectedPrize, promoCode, prizesList: prizes });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -202,10 +204,12 @@ app.get('/api/admin/data', async (req, res) => {
 
         const usersRes = await db.execute(`SELECT id, username, last_spin, is_banned FROM users`);
         const adminsRes = await db.execute(`SELECT username FROM admins`);
+        const prizesRes = await db.execute(`SELECT * FROM prizes`);
 
         res.json({
             users: usersRes.rows,
-            admins: adminsRes.rows.map(a => a.username)
+            admins: adminsRes.rows.map(a => a.username),
+            prizes: prizesRes.rows
         });
     } catch (e) {
         res.status(500).json({ error: e.message });
@@ -214,7 +218,7 @@ app.get('/api/admin/data', async (req, res) => {
 
 app.post('/api/admin/action', async (req, res) => {
     try {
-        const { adminId, adminUsername, targetId, targetUsername, actionType } = req.body;
+        const { adminId, adminUsername, targetId, targetUsername, actionType, prizeData } = req.body;
         
         if (!await checkIsAdmin(adminId, adminUsername)) {
             return res.status(403).json({ message: 'Доступ запрещен' });
@@ -263,6 +267,19 @@ app.post('/api/admin/action', async (req, res) => {
             }
             await db.execute({ sql: `DELETE FROM admins WHERE username = ?`, args: [cleanName] });
             res.json({ message: `Админ @${cleanName} удален` });
+        } else if (actionType === 'add_prize') {
+            const { name, description, icon, weight, rarity } = prizeData;
+            await db.execute({
+                sql: `INSERT INTO prizes (name, description, icon, weight, rarity) VALUES (?, ?, ?, ?, ?)`,
+                args: [name, description, icon || '🎁', weight || 10, rarity || 'common']
+            });
+            res.json({ message: 'Приз успешно добавлен!' });
+        } else if (actionType === 'delete_prize') {
+            await db.execute({
+                sql: `DELETE FROM prizes WHERE id = ?`,
+                args: [prizeData.id]
+            });
+            res.json({ message: 'Приз удален!' });
         }
     } catch (e) {
         res.status(500).json({ message: e.message });
