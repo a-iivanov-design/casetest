@@ -34,7 +34,6 @@
             -webkit-font-smoothing: antialiased;
         }
 
-        /* Фоновые мягкие переливы в стиле Apple wallpapers */
         body::before {
             content: '';
             position: absolute;
@@ -107,7 +106,6 @@
             display: none;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
             width: 100%;
             flex: 1;
             box-sizing: border-box;
@@ -159,7 +157,7 @@
 
         .roller-window {
             width: 100%;
-            max-width: 350px;
+            max-width: 100%;
             height: 140px;
             overflow: hidden;
             position: relative;
@@ -226,13 +224,11 @@
             letter-spacing: 0.6px;
         }
 
-        /* Редкость в спокойных тонах */
         .prize-common .prize-name { color: #F5F5F7; }
-        .prize-uncommon .prize-name { color: #5AC8FA; } /* iOS Blue */
-        .prize-rare .prize-name { color: #AF52DE; }    /* iOS Purple */
-        .prize-epic .prize-name { color: #34C759; font-weight: 600; }     /* iOS Green */
+        .prize-uncommon .prize-name { color: #5AC8FA; }
+        .prize-rare .prize-name { color: #AF52DE; }
+        .prize-epic .prize-name { color: #34C759; font-weight: 600; }
 
-        /* Центральный указатель */
         .selector-center-line {
             position: absolute;
             top: 0;
@@ -266,7 +262,6 @@
 
         .action-area {
             width: 100%;
-            max-width: 350px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -320,13 +315,11 @@
             padding: 0 10px;
         }
 
-        /* Инвентарь и Админка */
+        /* Инвентарь и Админка на всю ширину и высоту */
         .inventory-wrapper {
             width: 100%;
-            max-width: 350px;
             flex: 1;
             overflow-y: auto;
-            max-height: 380px;
             padding-right: 2px;
             box-sizing: border-box;
             margin-top: 6px;
@@ -351,10 +344,12 @@
             align-items: center;
             font-size: 13px;
             box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .admin-card input {
-            width: 50px;
+            width: 60px;
             background: rgba(0,0,0,0.5);
             color: var(--text-main);
             border: 1px solid var(--border-color);
@@ -382,11 +377,11 @@
 
         .add-prize-form, .stats-box {
             width: 100%;
-            max-width: 350px;
             display: flex;
             flex-direction: column;
             gap: 10px;
             margin-top: 10px;
+            box-sizing: border-box;
         }
 
         .add-prize-form input {
@@ -398,6 +393,8 @@
             border-radius: 14px;
             font-size: 13px;
             outline: none;
+            width: 100%;
+            box-sizing: border-box;
             transition: border-color 0.2s;
         }
         .add-prize-form input:focus {
@@ -415,10 +412,9 @@
             gap: 10px;
         }
 
-        /* Навигация (Dock в стиле macOS/iOS) */
+        /* Навигация (Dock) */
         .bottom-nav-toggle {
             width: 100%;
-            max-width: 350px;
             background: var(--card-bg);
             backdrop-filter: var(--glass-blur);
             -webkit-backdrop-filter: var(--glass-blur);
@@ -430,6 +426,7 @@
             box-sizing: border-box;
             flex-shrink: 0;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            margin-top: 10px;
         }
 
         .nav-toggle-btn {
@@ -530,8 +527,8 @@
         </div>
     </div>
 
-    <div id="section-admin" class="view-section" style="justify-content: flex-start; overflow-y: auto; max-height: calc(100vh - 100px); padding-bottom: 10px;">
-        <div style="display:flex; gap:6px; margin-bottom:12px; width:100%; max-width:350px; overflow-x:auto; flex-shrink:0;">
+    <div id="section-admin" class="view-section" style="justify-content: flex-start;">
+        <div style="display:flex; gap:6px; margin-bottom:12px; width:100%; overflow-x:auto; flex-shrink:0;">
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:8px; font-size: 12px;">Призы</button>
             <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:8px; font-size: 12px;">Статистика</button>
             <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:8px; font-size: 12px;">Баны</button>
@@ -539,9 +536,9 @@
             <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:8px; font-size: 12px;">Админы</button>
         </div>
 
-        <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="admin-prizes-list" style="max-height: 160px; overflow-y: auto; padding-right: 4px;"><div style="text-align:center; color:var(--text-muted);">Загрузка...</div></div>
-            <div class="add-prize-form" style="margin-top: 10px;">
+        <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div class="admin-list" id="admin-prizes-list" style="flex:1; overflow-y:auto; padding-right: 4px;"><div style="text-align:center; color:var(--text-muted);">Загрузка...</div></div>
+            <div class="add-prize-form" style="margin-top: 10px; flex-shrink:0;">
                 <input type="text" id="new-name" placeholder="Название приза">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)">
                 <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)">
@@ -551,12 +548,12 @@
             </div>
         </div>
 
-        <div id="admin-sub-stats" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
+        <div id="admin-sub-stats" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1;">
             <div class="stats-box" id="stats-content">Загрузка...</div>
         </div>
 
-        <div id="admin-sub-ban" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
-            <div class="add-prize-form">
+        <div id="admin-sub-ban" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div class="add-prize-form" style="flex-shrink:0;">
                 <input type="text" id="ban-username" placeholder="Юзернейм (@username)">
                 <div style="display: flex; gap: 8px;">
                     <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="setBanStatus(1)">Бан</button>
@@ -564,21 +561,21 @@
                 </div>
                 <button class="spin-btn" style="padding:10px; font-size:12px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--border-color);" onclick="resetTimer()">Сбросить таймер</button>
             </div>
-            <div class="admin-list" id="banned-users-list" style="margin-top:10px; max-height:150px; overflow-y:auto;"></div>
+            <div class="admin-list" id="banned-users-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
         </div>
 
-        <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
-            <div class="admin-list" id="all-users-list" style="max-height: 200px; overflow-y: auto;"></div>
+        <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div class="admin-list" id="all-users-list" style="flex:1; overflow-y:auto;"></div>
         </div>
 
-        <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
-            <div id="super-admin-section" style="display:none; width:100%; max-width:350px; margin-bottom:10px;">
-                <div class="add-prize-form">
+        <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div id="super-admin-section" style="display:none; width:100%; margin-bottom:10px; flex-shrink:0;">
+                <div class="add-prize-form" style="margin-top:0;">
                     <input type="text" id="new-admin-username" placeholder="Новый админ (@username)">
                     <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="addNewAdmin()">Назначить</button>
                 </div>
             </div>
-            <div class="admin-list" id="admins-list-container" style="max-height: 150px; overflow-y: auto;"></div>
+            <div class="admin-list" id="admins-list-container" style="flex:1; overflow-y:auto;"></div>
         </div>
     </div>
 
@@ -749,7 +746,7 @@
                     const card = document.createElement('div');
                     card.className = 'inventory-card';
                     card.innerHTML = `
-                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:180px;">
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">
                             <div style="font-weight:500; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis;">${getIconHtml(item.icon, '22px')} ${item.prize_name}</div>
                             <div style="font-size:11px; color:var(--text-muted);">Код: <span style="color:var(--text-main); font-weight:600;">${item.promo}</span></div>
                             <div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Срок: ${item.hoursLeft}ч</div>
@@ -820,7 +817,7 @@
                 const res = await fetch(`/api/admin/banned-list?username=${username}`);
                 const data = await res.json();
                 if (!data.bannedUsers || data.bannedUsers.length === 0) {
-                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Нет заблокированных</div>';
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">Нет заблокированных</div>';
                     return;
                 }
                 listEl.innerHTML = '';
@@ -840,7 +837,7 @@
                 const res = await fetch(`/api/admin/users-list?username=${username}`);
                 const data = await res.json();
                 if (!data.users || data.users.length === 0) {
-                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px;">Нет пользователей</div>';
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">Нет пользователей</div>';
                     return;
                 }
                 listEl.innerHTML = '';
@@ -864,7 +861,7 @@
                     }
 
                     card.innerHTML = `
-                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:140px;">${displayName}</div>
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">${displayName}</div>
                         ${actionButtonsHtml}
                     `;
                     listEl.appendChild(card);
