@@ -1,12 +1,12 @@
 window.APP_CONFIG = {
     // Название клуба или текст логотипа
-    clubLogoText: "CYBER <span>CLUB</span>",
+    clubLogoText: "",
     
     // Ссылка на логотип в шапке (пустое '' включит текстовый логотип выше)
-    clubLogoImage: "", 
+    clubLogoImage: "/logo.jpg", 
 
     // Иконка или картинка кейса
-    caseImage: "📦", 
+    caseImage: "/case_icon.png", 
 
     // Цветовая палитра в стиле Apple Dark Mode / Glass
     primaryColor: "#FFFFFF",     // Чистый белый акцент
