@@ -2,104 +2,1168 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Case Opening Service</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CASE LOUNGE</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="config.js"></script>
     <style>
+        :root {
+            --primary: #FFFFFF;
+            --secondary: #FF453A;
+            --bg: #000000;
+            --card-bg: rgba(255, 255, 255, 0.06);
+            --border-color: rgba(255, 255, 255, 0.12);
+            --text-main: #F5F5F7;
+            --text-muted: #86868B;
+            --glass-blur: blur(25px);
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background-color: #121212;
-            color: #ffffff;
-            margin: 0;
-            padding: 20px;
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
             display: flex;
             flex-direction: column;
             align-items: center;
-        }
-        .roulette-container {
-            width: 100%;
-            max-width: 600px;
-            height: 150px;
+            height: 100vh;
+            margin: 0;
             overflow: hidden;
-            border: 2px solid #333;
-            background: #1e1e1e;
+            padding: 10px 16px 16px 16px;
+            box-sizing: border-box;
+            justify-content: space-between;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: -60px; left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, rgba(0,0,0,0) 75%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .top-bar {
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 44px;
+            flex-shrink: 0;
             position: relative;
-            margin-bottom: 20px;
+        }
+
+        .admin-entry-btn {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 14px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+            z-index: 5;
+        }
+        .admin-entry-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .header-logo-container {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .club-logo-img {
+            max-height: 40px;
+            max-width: 160px;
+            object-fit: contain;
             border-radius: 8px;
         }
-        .roulette-track {
+
+        .club-logo-text {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-main);
+            letter-spacing: -0.5px;
+        }
+        .club-logo-text span {
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        .view-section {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            flex: 1;
+            box-sizing: border-box;
+            overflow: hidden;
+            justify-content: center;
+        }
+        .view-section.active {
+            display: flex;
+        }
+
+        .case-preview-box {
+            width: 140px;
+            height: 140px;
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            margin-bottom: 24px;
+            box-shadow: 0 24px 48px rgba(0,0,0,0.5);
+            position: relative;
+            animation: floatCase 6s ease-in-out infinite;
+            overflow: visible;
+        }
+        .case-preview-box img {
+            width: 80px;
+            height: 80px;
+            object-fit: contain;
+        }
+
+        @keyframes floatCase {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .roller-container-wrapper {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-shrink: 0;
+            margin: 10px 0;
+        }
+
+        .roller-window {
+            width: 100%;
+            max-width: 100%;
+            height: 140px;
+            overflow: hidden;
+            position: relative;
+            background-color: rgba(255, 255, 255, 0.02);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            border-radius: 22px;
+            box-sizing: border-box;
+            box-shadow: inset 0 2px 12px rgba(0,0,0,0.7);
+        }
+
+        .roller-content {
             display: flex;
             position: absolute;
             left: 0;
             top: 0;
             height: 100%;
-            transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1);
+            align-items: center;
         }
-        .roulette-item {
-            min-width: 120px;
-            height: 100%;
+
+        .prize-item {
+            width: 110px;
+            height: 124px;
+            flex-shrink: 0;
+            background: transparent;
+            border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            border-right: 1px solid #333;
-            background: #2a2a2a;
             box-sizing: border-box;
-            padding: 10px;
+            padding: 12px;
+            text-align: center;
         }
-        button {
-            padding: 10px 20px;
-            background-color: #ff4757;
-            color: white;
+
+        .prize-icon-wrap {
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+        .prize-icon-wrap img {
+            width: 38px;
+            height: 38px;
+            object-fit: contain;
+        }
+
+        .prize-name {
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.25;
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            color: var(--text-main);
+        }
+
+        .prize-desc {
+            font-size: 9px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+        }
+
+        .selector-center-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 2px;
+            background: var(--primary);
+            z-index: 10;
+            pointer-events: none;
+            box-shadow: 0 0 15px rgba(255,255,255,0.6);
+        }
+        .selector-center-line::before, .selector-center-line::after {
+            content: '';
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+        }
+        .selector-center-line::before {
+            top: 0;
+            border-top: 6px solid var(--primary);
+        }
+        .selector-center-line::after {
+            bottom: 0;
+            border-bottom: 6px solid var(--primary);
+        }
+
+        .action-area {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+            margin-top: 15px;
+        }
+
+        button.spin-btn {
+            width: 100%;
+            background: var(--primary);
+            color: #000000;
             border: none;
-            border-radius: 5px;
+            padding: 16px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: -0.2px;
+            border-radius: 18px;
             cursor: pointer;
-            font-size: 16px;
+            transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow: 0 6px 24px rgba(255, 255, 255, 0.2);
         }
-        button:hover {
-            background-color: #ff6b81;
+        button.spin-btn:not(:disabled):hover {
+            opacity: 0.94;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 28px rgba(255, 255, 255, 0.3);
+        }
+        button.spin-btn:not(:disabled):active {
+            transform: scale(0.98);
+        }
+        button.spin-btn:disabled {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .spin-timer-text {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 12px;
+            text-align: center;
+            font-weight: 400;
+        }
+
+        #result-message {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            text-align: center;
+            min-height: 2.4em;
+            padding: 0 10px;
+        }
+
+        .inventory-wrapper {
+            width: 100%;
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 2px;
+            box-sizing: border-box;
+            margin-top: 6px;
+        }
+
+        .inventory-list, .admin-list {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .inventory-card, .admin-card {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            padding: 14px 16px;
+            border-radius: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+            width: 100%;
+            box-sizing: border-box;
+            transition: border-color 0.2s ease;
+        }
+        .admin-card:hover {
+            border-color: rgba(255, 255, 255, 0.22);
+        }
+
+        .admin-card input {
+            width: 65px;
+            background: rgba(0,0,0,0.6);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            padding: 8px;
+            border-radius: 12px;
+            font-weight: 600;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .admin-card input:focus {
+            border-color: rgba(255,255,255,0.4);
+        }
+
+        .admin-card button, .inventory-card button {
+            background: rgba(255, 69, 58, 0.15);
+            color: var(--secondary);
+            border: 1px solid rgba(255, 69, 58, 0.3);
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        .admin-card button:hover, .inventory-card button:hover {
+            background: var(--secondary);
+            color: #fff;
+        }
+
+        .add-prize-form, .stats-box {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 10px;
+            box-sizing: border-box;
+        }
+
+        .add-prize-form input {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 14px 16px;
+            border-radius: 16px;
+            font-size: 13px;
+            outline: none;
+            width: 100%;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+        .add-prize-form input:focus {
+            border-color: rgba(255,255,255,0.4);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .stats-box {
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 18px;
+            font-size: 14px;
+            box-sizing: border-box;
+            gap: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .bottom-nav-toggle {
+            width: 100%;
+            background: var(--card-bg);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-color);
+            padding: 6px;
+            border-radius: 22px;
+            display: flex;
+            gap: 6px;
+            box-sizing: border-box;
+            flex-shrink: 0;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.6);
+            margin-top: 8px;
+        }
+
+        .nav-toggle-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 12px;
+            font-size: 13px;
+            font-weight: 500;
+            border-radius: 16px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            text-align: center;
+        }
+
+        .nav-toggle-btn.active {
+            background: rgba(255, 255, 255, 0.12);
+            color: var(--text-main);
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+
+        #banned-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(35px);
+            -webkit-backdrop-filter: blur(35px);
+            z-index: 99999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .banned-box {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 36px 28px;
+            border-radius: 26px;
+            max-width: 320px;
+            width: 100%;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.6);
         }
     </style>
 </head>
 <body>
 
-    <h1>Кейсы</h1>
-    
-    <div class="roulette-container">
-        <div class="roulette-track" id="track">
-            <!-- Элементы генерируются динамически -->
+    <div id="banned-screen">
+        <div class="banned-box">
+            <div style="font-size: 48px; margin-bottom: 14px;">⚠️</div>
+            <h2 style="color: var(--text-main); margin: 0 0 8px 0; font-size: 18px; font-weight: 600; letter-spacing: -0.3px;">Доступ ограничен</h2>
+            <p style="color: var(--text-muted); font-size: 13px; line-height: 1.4; margin-bottom: 0;">Ваш аккаунт заблокирован администрацией.</p>
         </div>
     </div>
 
-    <button onclick="startRoll()">Открыть кейс</button>
+    <!-- Модальное окно победы -->
+    <div id="win-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); backdrop-filter:blur(30px); -webkit-backdrop-filter:blur(30px); z-index:9999; flex-direction:column; justify-content:center; align-items:center; padding:20px; box-sizing:border-box; animation: fadeInModal 0.3s ease;">
+        <div style="background:var(--card-bg); border:1px solid var(--border-color); padding:30px 24px; border-radius:28px; max-width:300px; width:100%; text-align:center; box-shadow: 0 24px 60px rgba(0,0,0,0.7); position:relative; overflow:hidden;">
+            <div style="position:absolute; top:-40px; left:50%; transform:translateX(-50%); width:120px; height:120px; background:radial-gradient(circle, rgba(255,255,255,0.2) 0%, rgba(0,0,0,0) 70%); pointer-events:none;"></div>
+            <div style="font-size:11px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:6px;">Поздравляем!</div>
+            <div id="win-modal-icon" style="font-size:50px; margin:12px 0;">🎁</div>
+            <h3 id="win-modal-title" style="font-size:18px; font-weight:600; color:var(--text-main); margin:0 0 14px 0; letter-spacing:-0.3px;">Название приза</h3>
+            <div style="background:rgba(0,0,0,0.5); border:1px solid var(--border-color); padding:12px; border-radius:14px; margin-bottom:20px;">
+                <div style="font-size:10px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px;">Ваш промокод</div>
+                <div id="win-modal-promo" style="font-size:15px; font-weight:600; color:var(--primary); letter-spacing:0.5px;">CODE-XXXX</div>
+            </div>
+            <button class="spin-btn" style="padding:14px; font-size:13px;" onclick="closeWinModal()">Забрать в инвентарь</button>
+        </div>
+    </div>
+    
+    <style>
+    @keyframes fadeInModal {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+    </style>
+
+    <div class="top-bar">
+        <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
+            ← Панель
+        </button>
+        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">
+            ✕ Закрыть
+        </button>
+
+        <div class="header-logo-container" id="header-logo-box">
+            <div class="club-logo-text" id="club-logo-text">CASE <span>LOUNGE</span></div>
+        </div>
+    </div>
+
+    <div id="section-case" class="view-section active">
+        <div class="case-preview-box" id="case-preview-container">
+            <span id="case-preview-icon">📦</span>
+        </div>
+
+        <div class="roller-container-wrapper" id="roller-wrapper-box" style="display: none;">
+            <div class="selector-center-line"></div>
+            <div class="roller-window" id="roller-window">
+                <div class="roller-content" id="roller-content"></div>
+            </div>
+        </div>
+
+        <div id="result-message"></div>
+
+        <div class="action-area">
+            <button class="spin-btn" id="action-button" onclick="startCase()">ОТКРЫТЬ КЕЙС</button>
+            <div class="spin-timer-text">Доступно 1 бесплатное открытие в сутки</div>
+        </div>
+    </div>
+
+    <div id="section-inventory" class="view-section" style="justify-content: flex-start;">
+        <div class="inventory-wrapper">
+            <div class="inventory-list" id="inventory-list">
+                <div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top: 20px;">Загрузка инвентаря...</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="section-admin" class="view-section" style="justify-content: flex-start;">
+        <div style="display:flex; gap:6px; margin-bottom:12px; width:100%; overflow-x:auto; flex-shrink:0;">
+            <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:8px; font-size: 12px;">Призы</button>
+            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:8px; font-size: 12px;">Статистика</button>
+            <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:8px; font-size: 12px;">Баны</button>
+            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:8px; font-size: 12px;">Пользователи</button>
+            <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:8px; font-size: 12px;">Админы</button>
+        </div>
+
+        <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; width:100%; flex:1; overflow:hidden;">
+            <div class="admin-list" id="admin-prizes-list" style="flex:1; overflow-y:auto; padding-right: 4px; margin-bottom: 10px;">
+                <div style="text-align:center; color:var(--text-muted);">Загрузка...</div>
+            </div>
+            <div class="add-prize-form" style="flex-shrink:0; margin-top:0;">
+                <input type="text" id="new-name" placeholder="Название приза" autocomplete="off">
+                <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)" autocomplete="off">
+                <input type="text" id="new-rarity" placeholder="Редкость (common/uncommon/rare/epic)" autocomplete="off">
+                <input type="number" id="new-weight" placeholder="Шанс (вес)" autocomplete="off">
+                <input type="text" id="new-promo" placeholder="Префикс промокода" autocomplete="off">
+                <button class="spin-btn" style="padding: 14px; font-size: 13px;" onclick="addPrize()">Добавить приз</button>
+            </div>
+        </div>
+
+        <div id="admin-sub-stats" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1;">
+            <div class="stats-box" id="stats-content">Загрузка...</div>
+        </div>
+
+        <div id="admin-sub-ban" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div class="add-prize-form" style="flex-shrink:0;">
+                <input type="text" id="ban-username" placeholder="Юзернейм (@username)" autocomplete="off">
+                <div style="display: flex; gap: 8px;">
+                    <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="setBanStatus(1)">Бан</button>
+                    <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,255,255,0.1); color:var(--text-main);" onclick="setBanStatus(0)">Разбан</button>
+                </div>
+                <button class="spin-btn" style="padding:10px; font-size:12px; background:var(--card-bg); color:var(--text-main); border:1px solid var(--border-color);" onclick="resetTimer()">Сбросить таймер</button>
+            </div>
+            <div class="admin-list" id="banned-users-list" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
+        </div>
+
+        <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div class="admin-list" id="all-users-list" style="flex:1; overflow-y:auto;"></div>
+        </div>
+
+        <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
+            <div id="super-admin-section" style="display:none; width:100%; margin-bottom:10px; flex-shrink:0;">
+                <div class="add-prize-form" style="margin-top:0;">
+                    <input type="text" id="new-admin-username" placeholder="Новый админ (@username)" autocomplete="off">
+                    <button class="spin-btn" style="padding:10px; font-size:12px; background:rgba(255,69,58,0.2); color:var(--secondary);" onclick="addNewAdmin()">Назначить</button>
+                </div>
+            </div>
+            <div class="admin-list" id="admins-list-container" style="flex:1; overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <div class="bottom-nav-toggle" id="bottom-nav-toggle">
+        <button class="nav-toggle-btn active" id="btn-tab-case" onclick="switchTab('case')">Рулетка</button>
+        <button class="nav-toggle-btn" id="btn-tab-inventory" onclick="switchTab('inventory')">Инвентарь</button>
+    </div>
 
     <script>
-        const items = ['Обычный', 'Редкий', 'Эпический', 'Легендарный', 'Нож'];
-
-        function initRoulette() {
-            const track = document.getElementById('track');
-            let html = '';
-            // Генерируем ленту из 50 элементов для плавной прокрутки
-            for (let i = 0; i < 50; i++) {
-                const randomItem = items[Math.floor(Math.random() * items.length)];
-                html += `<div class="roulette-item"><span>${randomItem}</span></div>`;
+        function getIconHtml(icon, size = '30px') {
+            if (!icon) return '📦';
+            if (icon.startsWith('http') || icon.startsWith('/')) {
+                return `<img src="${icon}" style="width:${size};height:${size};object-fit:contain;" onerror="this.outerHTML='📦'">`;
             }
-            track.innerHTML = html;
+            return icon;
         }
 
-        function startRoll() {
-            const track = document.getElementById('track');
-            track.style.transition = 'none';
-            track.style.transform = 'translateX(0px)';
+        if (window.APP_CONFIG) {
+            const cfg = window.APP_CONFIG;
+            const logoBox = document.getElementById('header-logo-box');
             
-            setTimeout(() => {
-                track.style.transition = 'transform 4s cubic-bezier(0.08, 0.82, 0.17, 1)';
-                // Рандомная позиция остановки
-                const randomOffset = Math.floor(Math.random() * 30) * 120 - 200;
-                track.style.transform = `translateX(-${Math.abs(randomOffset)}px)`;
-            }, 50);
+            if (cfg.clubLogoImage) {
+                logoBox.innerHTML = `<img src="${cfg.clubLogoImage}" class="club-logo-img" alt="Logo">`;
+            } else if (cfg.clubLogoText) {
+                document.getElementById('club-logo-text').innerHTML = cfg.clubLogoText;
+            }
+
+            const caseIconContainer = document.getElementById('case-preview-icon');
+            if (cfg.caseImage) {
+                if (cfg.caseImage.startsWith('http') || cfg.caseImage.startsWith('/')) {
+                    caseIconContainer.innerHTML = `<img src="${cfg.caseImage}" alt="Case">`;
+                } else {
+                    caseIconContainer.innerText = cfg.caseImage;
+                }
+            }
+
+            const root = document.documentElement;
+            if (cfg.primaryColor) root.style.setProperty('--primary', cfg.primaryColor);
+            if (cfg.secondaryColor) root.style.setProperty('--secondary', cfg.secondaryColor);
+            if (cfg.backgroundColor) root.style.setProperty('--bg', cfg.backgroundColor);
+            if (cfg.cardBackground) root.style.setProperty('--card-bg', cfg.cardBackground);
+            if (cfg.borderColor) root.style.setProperty('--border-color', cfg.borderColor);
         }
 
-        initRoulette();
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id ? String(tg.initDataUnsafe.user.id) : 'test_user';
+        const username = tg.initDataUnsafe?.user?.username || 'ropogku';
+
+        let cachedServerPrizes = [];
+        let isSpinning = false;
+        let isSuperAdmin = false;
+        let isAdminUser = false;
+        let isPrizesLoadedOnce = false;
+
+        async function checkUserStatus() {
+            const btn = document.getElementById('action-button');
+            const msg = document.getElementById('result-message');
+
+            try {
+                const res = await fetch(`/api/status?userId=${userId}&username=${username}`);
+                const data = await res.json();
+
+                if (data.isBanned) {
+                    document.getElementById('banned-screen').style.display = 'flex';
+                    btn.disabled = true;
+                    btn.innerText = 'Заблокирован';
+                    return;
+                }
+
+                if (data.canSpin === false) {
+                    btn.disabled = true;
+                    btn.innerText = 'ОТКРЫТЬ КЕЙС';
+                    msg.style.color = 'var(--text-muted)';
+                    msg.innerText = `Следующая попытка доступна через: ${data.nextSpinTime}`;
+                } else {
+                    btn.disabled = false;
+                    btn.innerText = 'ОТКРЫТЬ КЕЙС';
+                    msg.innerText = '';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function checkAdminAccess() {
+            try {
+                const res = await fetch(`/api/admin/check?username=${username}`);
+                const data = await res.json();
+                if (data.isAdmin) {
+                    isAdminUser = true;
+                    isSuperAdmin = data.isSuper;
+                    document.getElementById('admin-entry-btn').style.display = 'flex';
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        checkAdminAccess();
+        checkUserStatus();
+
+        function switchTab(tab) {
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.getElementById('btn-tab-case').classList.remove('active');
+            document.getElementById('btn-tab-inventory').classList.remove('active');
+
+            const bottomNav = document.getElementById('bottom-nav-toggle');
+            const adminEntryBtn = document.getElementById('admin-entry-btn');
+            const exitAdminBtn = document.getElementById('exit-admin-btn');
+
+            if (tab === 'case') {
+                document.getElementById('section-case').classList.add('active');
+                document.getElementById('btn-tab-case').classList.add('active');
+                bottomNav.style.display = 'flex';
+                exitAdminBtn.style.display = 'none';
+                if (isAdminUser) adminEntryBtn.style.display = 'flex';
+                checkUserStatus();
+                resetCasePreviewState();
+            } else if (tab === 'inventory') {
+                document.getElementById('section-inventory').classList.add('active');
+                document.getElementById('btn-tab-inventory').classList.add('active');
+                bottomNav.style.display = 'flex';
+                exitAdminBtn.style.display = 'none';
+                if (isAdminUser) adminEntryBtn.style.display = 'flex';
+                loadInventory();
+            } else if (tab === 'admin') {
+                document.getElementById('section-admin').classList.add('active');
+                bottomNav.style.display = 'none';
+                adminEntryBtn.style.display = 'none';
+                exitAdminBtn.style.display = 'flex';
+                loadAdminPrizes();
+            }
+        }
+
+        function switchAdminSub(sub) {
+            ['prizes', 'stats', 'ban', 'users', 'admins'].forEach(s => {
+                document.getElementById(`subtab-${s}`).classList.remove('active');
+                document.getElementById(`admin-sub-${s}`).style.display = 'none';
+            });
+            document.getElementById(`subtab-${sub}`).classList.add('active');
+            document.getElementById(`admin-sub-${sub}`).style.display = 'flex';
+
+            if (sub === 'stats') loadStats();
+            if (sub === 'ban') loadBannedUsers();
+            if (sub === 'users') loadAllUsers();
+            if (sub === 'admins') loadAdminsList();
+        }
+
+        function resetCasePreviewState() {
+            document.getElementById('case-preview-container').style.display = 'flex';
+            document.getElementById('roller-wrapper-box').style.display = 'none';
+        }
+        resetCasePreviewState();
+
+        function closeWinModal() {
+            document.getElementById('win-modal').style.display = 'none';
+            resetCasePreviewState();
+            checkUserStatus();
+        }
+
+        async function loadInventory() {
+            const listEl = document.getElementById('inventory-list');
+            listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px;">Загрузка...</div>';
+            try {
+                const res = await fetch(`/api/inventory?userId=${userId}`);
+                const data = await res.json();
+                if (!data.items || data.items.length === 0) {
+                    listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted); font-size: 13px; margin-top:20px;">Инвентарь пуст</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.items.forEach(item => {
+                    let formattedDate = '';
+                    if (item.won_at) {
+                        const dateObj = new Date(item.won_at);
+                        if (!isNaN(dateObj)) {
+                            formattedDate = dateObj.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' });
+                        }
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = 'inventory-card';
+                    card.innerHTML = `
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">
+                            <div style="font-weight:500; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis;">${getIconHtml(item.icon, '22px')} ${item.prize_name}</div>
+                            <div style="font-size:11px; color:var(--text-muted);">Код: <span style="color:var(--text-main); font-weight:600;">${item.promo}</span></div>
+                            ${formattedDate ? `<div style="font-size:10px; color:var(--text-muted); margin-top:2px;">Получено: ${formattedDate}</div>` : ''}
+                            <div style="font-size:10px; color:var(--text-muted); margin-top:1px;">Срок: ${item.hoursLeft}ч</div>
+                        </div>
+                        <button onclick="deleteInventoryItem(${item.id})">Удалить</button>
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
+            }
+        }
+
+        async function deleteInventoryItem(itemId) {
+            if (!confirm('Удалить приз?')) return;
+            try {
+                const res = await fetch('/api/inventory/delete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, itemId })
+                });
+                const data = await res.json();
+                if (data.error) { alert(data.error); return; }
+                loadInventory();
+            } catch (e) { alert('Ошибка'); }
+        }
+
+        async function loadAdminPrizes() {
+            const listEl = document.getElementById('admin-prizes-list');
+            
+            if (!isPrizesLoadedOnce) {
+                listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted);">Загрузка...</div>';
+            }
+
+            try {
+                const res = await fetch(`/api/admin/prizes?username=${username}`);
+                const data = await res.json();
+                if (!data.prizes) return;
+                cachedServerPrizes = data.prizes;
+
+                if (!isPrizesLoadedOnce || listEl.children.length !== data.prizes.length) {
+                    listEl.innerHTML = '';
+                    data.prizes.forEach(p => {
+                        const card = document.createElement('div');
+                        card.className = 'admin-card';
+                        card.id = `admin-prize-card-${p.id}`;
+                        card.innerHTML = `
+                            <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '20px')} <b style="overflow: hidden; text-overflow: ellipsis; font-weight:500;">${p.name}</b></div>
+                            <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                                <input type="number" id="weight-${p.id}" value="${p.weight}" autocomplete="off" onchange="updateWeight(${p.id})">
+                                <button onclick="deletePrize(${p.id})">Удалить</button>
+                            </div>
+                        `;
+                        listEl.appendChild(card);
+                    });
+                    isPrizesLoadedOnce = true;
+                } else {
+                    data.prizes.forEach(p => {
+                        const input = document.getElementById(`weight-${p.id}`);
+                        if (input && document.activeElement !== input) {
+                            input.value = p.weight;
+                        }
+                    });
+                }
+            } catch (e) {}
+        }
+
+        async function loadStats() {
+            const statsBox = document.getElementById('stats-content');
+            try {
+                const res = await fetch(`/api/admin/stats?username=${username}`);
+                const data = await res.json();
+                statsBox.innerHTML = `
+                    <div>Открытий кейсов: <b>${data.totalSpins}</b></div>
+                    <div>Всего игроков: <b>${data.totalUsers}</b></div>
+                    <div>Заблокировано: <b>${data.bannedUsers}</b></div>
+                `;
+            } catch (e) { statsBox.innerHTML = 'Ошибка'; }
+        }
+
+        async function loadBannedUsers() {
+            const listEl = document.getElementById('banned-users-list');
+            try {
+                const res = await fetch(`/api/admin/banned-list?username=${username}`);
+                const data = await res.json();
+                if (!data.bannedUsers || data.bannedUsers.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">Нет заблокированных</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.bannedUsers.forEach(u => {
+                    if (u.username.toLowerCase() === 'ropogku') return;
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    card.innerHTML = `<div>@${u.username}</div><button style="background:rgba(255,255,255,0.1); color:var(--text-main);" onclick="quickUnban('${u.username}')">Разбан</button>`;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {}
+        }
+
+        async function loadAllUsers() {
+            const listEl = document.getElementById('all-users-list');
+            try {
+                const res = await fetch(`/api/admin/users-list?username=${username}`);
+                const data = await res.json();
+                if (!data.users || data.users.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; color:var(--text-muted); font-size:13px; margin-top:20px;">Нет пользователей</div>';
+                    return;
+                }
+                listEl.innerHTML = '';
+                data.users.forEach(u => {
+                    const isRopogkuUser = u.username && u.username.toLowerCase() === 'ropogku';
+                    const displayName = u.username ? `@${u.username}` : `ID: ${u.id}`;
+                    const targetIdentifier = u.username || u.id;
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    
+                    let actionButtonsHtml = '';
+                    if (!isRopogkuUser) {
+                        actionButtonsHtml = `
+                            <div style="display:flex; gap:6px; flex-shrink:0;">
+                                <button onclick="document.getElementById('ban-username').value='${u.username || ''}'; switchAdminSub('ban');">Бан</button>
+                                <button style="background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color);" onclick="deleteUser('${targetIdentifier}')">Удалить</button>
+                            </div>
+                        `;
+                    } else {
+                        actionButtonsHtml = `<div style="font-size:11px; color:var(--text-muted);">Главный админ</div>`;
+                    }
+
+                    card.innerHTML = `
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">${displayName}</div>
+                        ${actionButtonsHtml}
+                    `;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {}
+        }
+
+        async function loadAdminsList() {
+            const listEl = document.getElementById('admins-list-container');
+            if (isSuperAdmin) document.getElementById('super-admin-section').style.display = 'block';
+            try {
+                const res = await fetch(`/api/admin/list?username=${username}`);
+                const data = await res.json();
+                listEl.innerHTML = '';
+                data.admins.forEach(adm => {
+                    const isTargetRopogku = adm.username.toLowerCase() === 'ropogku';
+                    const card = document.createElement('div');
+                    card.className = 'admin-card';
+                    let actionBtn = '';
+                    if (isSuperAdmin && !isTargetRopogku) {
+                        actionBtn = `<button style="background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color);" onclick="removeAdmin('${adm.username}')">Снять</button>`;
+                    }
+                    card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>${actionBtn}`;
+                    listEl.appendChild(card);
+                });
+            } catch (e) {}
+        }
+
+        async function setBanStatus(banState) {
+            const targetUsername = document.getElementById('ban-username').value;
+            if (!targetUsername) return;
+            const res = await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetUsername, banState })
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            alert('Готово');
+            loadBannedUsers();
+        }
+
+        async function resetTimer() {
+            const targetUsername = document.getElementById('ban-username').value;
+            if (!targetUsername) return;
+            await fetch('/api/admin/reset-timer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetUsername })
+            });
+            alert('Таймер сброшен');
+        }
+
+        async function quickUnban(targetUsername) {
+            await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetUsername, banState: 0 })
+            });
+            loadBannedUsers();
+        }
+
+        async function deleteUser(targetIdentifier) {
+            if (!confirm(`Удалить пользователя (${targetIdentifier})?`)) return;
+            const res = await fetch('/api/admin/delete-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetIdentifier })
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            loadAllUsers();
+        }
+
+        async function updateWeight(prizeId) {
+            const input = document.getElementById(`weight-${prizeId}`);
+            if (!input) return;
+            const weight = Number(input.value);
+            
+            await fetch('/api/admin/update-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, prizeId, weight })
+            });
+        }
+
+        async function addPrize() {
+            const nameEl = document.getElementById('new-name');
+            const iconEl = document.getElementById('new-icon');
+            const rarityEl = document.getElementById('new-rarity');
+            const weightEl = document.getElementById('new-weight');
+            const promoEl = document.getElementById('new-promo');
+
+            const name = nameEl.value;
+            const icon = iconEl.value;
+            const rarity = rarityEl.value;
+            const weight = Number(weightEl.value);
+            const promo_prefix = promoEl.value;
+
+            if (!name || !weight) return alert('Укажите название и шанс');
+
+            await fetch('/api/admin/add-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, name, icon, rarity, weight, promo_prefix })
+            });
+            
+            nameEl.value = '';
+            iconEl.value = '';
+            rarityEl.value = '';
+            weightEl.value = '';
+            promoEl.value = '';
+
+            loadAdminPrizes();
+            nameEl.focus();
+        }
+
+        async function deletePrize(prizeId) {
+            if (!confirm('Удалить приз?')) return;
+            await fetch('/api/admin/delete-prize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, prizeId })
+            });
+            loadAdminPrizes();
+        }
+
+        async function addNewAdmin() {
+            const newAdminUsername = document.getElementById('new-admin-username').value;
+            if (!newAdminUsername) return;
+            await fetch('/api/admin/add-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, newAdminUsername })
+            });
+            alert('Админ добавлен');
+            loadAdminsList();
+        }
+
+        async function removeAdmin(targetAdminUsername) {
+            if (!confirm(`Снять администратора @${targetAdminUsername}?`)) return;
+            await fetch('/api/admin/remove-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetAdminUsername })
+            });
+            loadAdminsList();
+        }
+
+        async function startCase() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const btn = document.getElementById('action-button');
+            const content = document.getElementById('roller-content');
+            const msg = document.getElementById('result-message');
+
+            btn.disabled = true;
+            btn.innerText = 'Открытие...';
+            msg.innerText = '';
+
+            let serverData = null;
+            try {
+                const response = await fetch('/api/spin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId, username })
+                });
+                serverData = await response.json();
+
+                if (response.status !== 200) {
+                    isSpinning = false;
+                    btn.disabled = false;
+                    msg.style.color = 'var(--secondary)';
+                    msg.innerText = serverData.error || 'Ошибка';
+                    if (serverData.isBanned) {
+                        document.getElementById('banned-screen').style.display = 'flex';
+                    }
+                    return;
+                }
+            } catch (e) {
+                isSpinning = false;
+                btn.disabled = false;
+                return;
+            }
+
+            document.getElementById('case-preview-container').style.display = 'none';
+            document.getElementById('roller-wrapper-box').style.display = 'flex';
+
+            const winningPrize = serverData.prize;
+            let availablePrizes = cachedServerPrizes;
+            if (!availablePrizes || availablePrizes.length === 0) {
+                availablePrizes = [{ name: winningPrize.name, icon: winningPrize.icon, rarity: winningPrize.rarity || 'common' }];
+            }
+
+            content.innerHTML = '';
+            for (let i = 0; i < 40; i++) {
+                const randP = availablePrizes[Math.floor(Math.random() * availablePrizes.length)];
+                const p = (i === 30) ? winningPrize : randP;
+                
+                const div = document.createElement('div');
+                div.className = `prize-item prize-${p.rarity || 'common'}`;
+                div.innerHTML = `
+                    <div class="prize-icon-wrap">${getIconHtml(p.icon, '30px')}</div>
+                    <div class="prize-name">${p.name}</div>
+                    <div class="prize-desc">Награда</div>
+                `;
+                content.appendChild(div);
+            }
+
+            content.style.transition = 'none';
+            content.style.left = '0px';
+
+            const targetLeft = -(30 * 110 - 175 + 28);
+
+            setTimeout(() => {
+                content.style.transition = 'left 4s cubic-bezier(0.15, 0.85, 0.25, 1)';
+                content.style.left = `${targetLeft}px`;
+            }, 50);
+
+            setTimeout(() => {
+                isSpinning = false;
+                btn.disabled = true;
+                btn.innerText = 'ОТКРЫТЬ КЕЙС';
+                
+                document.getElementById('win-modal-icon').innerHTML = getIconHtml(winningPrize.icon, '50px');
+                document.getElementById('win-modal-title').innerText = winningPrize.name;
+                document.getElementById('win-modal-promo').innerText = serverData.promo;
+                document.getElementById('win-modal').style.display = 'flex';
+                
+                if (window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                }
+            }, 4100);
+        }
     </script>
 </body>
 </html>
