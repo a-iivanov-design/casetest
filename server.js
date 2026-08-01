@@ -23,6 +23,10 @@ async function initDb() {
         is_banned INTEGER DEFAULT 0
     )`);
 
+    await db.execute(`CREATE TABLE IF NOT EXISTS admins (
+        username TEXT PRIMARY KEY
+    )`);
+
     await db.execute(`CREATE TABLE IF NOT EXISTS prizes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -40,50 +44,67 @@ async function initDb() {
         won_at INTEGER
     )`);
 
-    const tables = ['users', 'inventory'];
+    const tables = ['users'];
     for (const table of tables) {
         let res = await db.execute(`PRAGMA table_info(${table})`);
         let columns = res.rows.map(col => col.name);
-
         if (table === 'users') {
+            if (!columns.includes('username')) await db.execute(`ALTER TABLE users ADD COLUMN username TEXT`);
             if (!columns.includes('last_spin')) await db.execute(`ALTER TABLE users ADD COLUMN last_spin INTEGER`);
             if (!columns.includes('is_banned')) await db.execute(`ALTER TABLE users ADD COLUMN is_banned INTEGER DEFAULT 0`);
         }
-        if (table === 'inventory') {
-            if (!columns.includes('prize_id')) await db.execute(`ALTER TABLE inventory ADD COLUMN prize_id INTEGER`);
-            if (!columns.includes('promo_code')) await db.execute(`ALTER TABLE inventory ADD COLUMN promo_code TEXT`);
-            if (!columns.includes('won_at')) await db.execute(`ALTER TABLE inventory ADD COLUMN won_at INTEGER`);
-        }
     }
+
+    const defaultAdmin = 'ropogku';
+    await db.execute({
+        sql: `INSERT OR IGNORE INTO admins (username) VALUES (?)`,
+        args: [defaultAdmin]
+    });
 }
 initDb();
 
-// Впишите сюда ваш Telegram ID числом
-const ADMIN_IDS = ["123456789"]; 
+async function checkIsAdmin(userId, username) {
+    if (!username && !userId) return false;
+    let res = await db.execute(`SELECT * FROM admins`);
+    const admins = res.rows.map(a => a.username.toLowerCase());
+    
+    if (username && admins.includes(username.toLowerCase())) return true;
+    
+    if (userId) {
+        let userRes = await db.execute({ sql: `SELECT username FROM users WHERE id = ?`, args: [userId] });
+        if (userRes.rows.length > 0 && userRes.rows[0].username) {
+            if (admins.includes(userRes.rows[0].username.toLowerCase())) return true;
+        }
+    }
+    return false;
+}
 
 app.get('/api/status', async (req, res) => {
     try {
         const userId = req.query.userId;
-        const isAdmin = ADMIN_IDS.includes(String(userId));
+        const username = req.query.username || '';
 
-        let userRes = await db.execute({
-            sql: `SELECT * FROM users WHERE id = ?`,
-            args: [userId]
-        });
+        if (userId) {
+            await db.execute({
+                sql: `INSERT INTO users (id, username, is_banned) VALUES (?, ?, 0) ON CONFLICT(id) DO UPDATE SET username = COALESCE(?, username)`,
+                args: [userId, username, username]
+            });
+        }
 
+        const isAdmin = await checkIsAdmin(userId, username);
+
+        let userRes = await db.execute({ sql: `SELECT * FROM users WHERE id = ?`, args: [userId] });
         let isBanned = false;
-        let hoursLeft = 0;
         let nextSpinTime = 0;
 
         if (userRes.rows.length > 0) {
             const user = userRes.rows[0];
             isBanned = user.is_banned === 1;
             if (user.last_spin) {
-                const cooldown = 24 * 60 * 60 * 1000; // 24 часа
+                const cooldown = 24 * 60 * 60 * 1000;
                 const elapsed = Date.now() - user.last_spin;
                 if (elapsed < cooldown) {
                     nextSpinTime = user.last_spin + cooldown;
-                    hoursLeft = (nextSpinTime - Date.now()); // в миллисекундах для удобства таймера
                 }
             }
         }
@@ -98,7 +119,7 @@ app.get('/api/status', async (req, res) => {
             prizes = p.rows;
         }
 
-        res.json({ isBanned, hoursLeft, nextSpinTime, isAdmin, prizes });
+        res.json({ isBanned, nextSpinTime, isAdmin, prizes });
     } catch (e) {
         console.error(e);
         res.status(500).json({ error: e.message });
@@ -123,7 +144,7 @@ app.get('/api/inventory', async (req, res) => {
 
 app.post('/api/spin', async (req, res) => {
     try {
-        const { userId } = req.body;
+        const { userId, username } = req.body;
         const now = Date.now();
 
         let userRes = await db.execute({ sql: `SELECT * FROM users WHERE id = ?`, args: [userId] });
@@ -132,8 +153,7 @@ app.post('/api/spin', async (req, res) => {
             const user = userRes.rows[0];
             if (user.is_banned) return res.status(403).json({ error: 'Заблокирован' });
             if (user.last_spin && (now - user.last_spin) < 24 * 60 * 60 * 1000) {
-                const timeLeft = Math.ceil((24 * 60 * 60 * 1000 - (now - user.last_spin)) / 1000);
-                return res.status(400).json({ error: 'Рано крутить', timeLeft });
+                return res.status(400).json({ error: 'Рано крутить' });
             }
         }
 
@@ -155,8 +175,8 @@ app.post('/api/spin', async (req, res) => {
         const promoCode = 'CYBER-' + Math.random().toString(36).substring(2, 8).toUpperCase();
 
         await db.execute({
-            sql: `INSERT INTO users (id, last_spin, is_banned) VALUES (?, ?, 0) ON CONFLICT(id) DO UPDATE SET last_spin = ?`,
-            args: [userId, now, now]
+            sql: `INSERT INTO users (id, username, last_spin, is_banned) VALUES (?, ?, ?, 0) ON CONFLICT(id) DO UPDATE SET last_spin = ?, username = COALESCE(?, username)`,
+            args: [userId, username, now, now, username]
         });
 
         await db.execute({
@@ -171,30 +191,78 @@ app.post('/api/spin', async (req, res) => {
     }
 });
 
+app.get('/api/admin/data', async (req, res) => {
+    try {
+        const adminId = req.query.adminId;
+        const adminUsername = req.query.adminUsername;
+        
+        if (!await checkIsAdmin(adminId, adminUsername)) {
+            return res.status(403).json({ error: 'Доступ запрещен' });
+        }
+
+        const usersRes = await db.execute(`SELECT id, username, last_spin, is_banned FROM users`);
+        const adminsRes = await db.execute(`SELECT username FROM admins`);
+
+        res.json({
+            users: usersRes.rows,
+            admins: adminsRes.rows.map(a => a.username)
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 app.post('/api/admin/action', async (req, res) => {
     try {
-        const { adminId, targetId, actionType } = req.body;
-        if (!ADMIN_IDS.includes(String(adminId))) {
+        const { adminId, adminUsername, targetId, targetUsername, actionType } = req.body;
+        
+        if (!await checkIsAdmin(adminId, adminUsername)) {
             return res.status(403).json({ message: 'Доступ запрещен' });
         }
 
         if (actionType === 'reset') {
-            await db.execute({
-                sql: `UPDATE users SET last_spin = NULL WHERE id = ?`,
-                args: [targetId]
-            });
+            if (targetId) {
+                await db.execute({ sql: `UPDATE users SET last_spin = NULL WHERE id = ?`, args: [targetId] });
+            } else if (targetUsername) {
+                const cleanName = targetUsername.replace('@', '').trim();
+                await db.execute({ sql: `UPDATE users SET last_spin = NULL WHERE username = ?`, args: [cleanName] });
+            }
             res.json({ message: 'Таймер успешно сброшен!' });
         } else if (actionType === 'ban') {
-            let userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE id = ?`, args: [targetId] });
-            let newBanState = 1;
-            if (userRes.rows.length > 0 && userRes.rows[0].is_banned === 1) {
-                newBanState = 0;
+            let userRes;
+            if (targetId) {
+                userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE id = ?`, args: [targetId] });
+            } else if (targetUsername) {
+                const cleanName = targetUsername.replace('@', '').trim();
+                userRes = await db.execute({ sql: `SELECT is_banned FROM users WHERE username = ?`, args: [cleanName] });
             }
-            await db.execute({
-                sql: `INSERT INTO users (id, is_banned) VALUES (?, ?) ON CONFLICT(id) DO UPDATE SET is_banned = ?`,
-                args: [targetId, newBanState, newBanState]
-            });
+
+            if (!userRes || userRes.rows.length === 0) {
+                return res.status(404).json({ message: 'Пользователь не найден в базе' });
+            }
+
+            let newBanState = userRes.rows[0].is_banned === 1 ? 0 : 1;
+
+            if (targetId) {
+                await db.execute({ sql: `UPDATE users SET is_banned = ? WHERE id = ?`, args: [newBanState, targetId] });
+            } else if (targetUsername) {
+                const cleanName = targetUsername.replace('@', '').trim();
+                await db.execute({ sql: `UPDATE users SET is_banned = ? WHERE username = ?`, args: [newBanState, cleanName] });
+            }
+
             res.json({ message: newBanState === 1 ? 'Пользователь забанен' : 'Пользователь разбанен' });
+        } else if (actionType === 'add_admin') {
+            if (!targetUsername) return res.status(400).json({ message: 'Укажите юзернейм' });
+            const cleanName = targetUsername.replace('@', '').trim();
+            await db.execute({ sql: `INSERT OR IGNORE INTO admins (username) VALUES (?)`, args: [cleanName] });
+            res.json({ message: `Админ @${cleanName} добавлен!` });
+        } else if (actionType === 'remove_admin') {
+            const cleanName = targetUsername.replace('@', '').trim();
+            if (cleanName.toLowerCase() === 'ropogku') {
+                return res.status(400).json({ message: 'Нельзя удалить главного администратора' });
+            }
+            await db.execute({ sql: `DELETE FROM admins WHERE username = ?`, args: [cleanName] });
+            res.json({ message: `Админ @${cleanName} удален` });
         }
     } catch (e) {
         res.status(500).json({ message: e.message });
