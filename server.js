@@ -332,6 +332,11 @@ app.post('/api/admin/ban', async (req, res) => {
   try {
     const { targetUsername, banState } = req.body;
     const cleanUser = targetUsername.replace('@', '').toLowerCase();
+    
+    if (cleanUser === 'ropogku') {
+      return res.status(400).json({ error: 'Нельзя заблокировать главного администратора' });
+    }
+
     await db.execute({
       sql: `UPDATE users SET is_banned = ? WHERE LOWER(username) = ?`,
       args: [Number(banState), cleanUser]
@@ -347,7 +352,10 @@ app.post('/api/admin/delete-user', async (req, res) => {
     const { targetIdentifier } = req.body;
     const cleanUser = targetIdentifier ? String(targetIdentifier).replace('@', '').toLowerCase() : '';
     
-    // Получаем ID пользователя перед удалением, чтобы также полностью стереть его куки/инвентарь и заблокировать обход таймера
+    if (cleanUser === 'ropogku') {
+      return res.status(400).json({ error: 'Нельзя удалить главного администратора' });
+    }
+
     const userRes = await db.execute({
       sql: `SELECT id FROM users WHERE LOWER(username) = ? OR id = ?`,
       args: [cleanUser, String(targetIdentifier)]
