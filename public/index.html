@@ -7,78 +7,68 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background-color: #0f1015; color: #ffffff; display: flex; flex-direction: column; min-height: 100vh; align-items: center; padding: 20px; }
-        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; flex: 1; }
+        body { background-color: #0f1015; color: #ffffff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
         
-        h1 { color: #ccff00; font-size: 28px; text-transform: uppercase; margin-bottom: 5px; text-align: center; }
-        .subtitle { color: #8a8d98; font-size: 12px; text-transform: uppercase; margin-bottom: 25px; text-align: center; letter-spacing: 1px; }
-
-        #admin-panel { width: 100%; background: #1a1c23; border: 1px solid #ccff00; border-radius: 12px; padding: 15px; margin-bottom: 20px; display: none; }
-        #admin-panel h3 { color: #ccff00; font-size: 14px; margin-bottom: 10px; }
-        .admin-section { margin-bottom: 12px; font-size: 12px; }
-        .admin-section input { width: 100%; background: #0f1015; border: 1px solid #333; color: #fff; padding: 8px; border-radius: 6px; font-size: 12px; margin-bottom: 6px; }
-        .admin-btns { display: flex; gap: 6px; }
-        .admin-btn { flex: 1; background: #ccff00; color: #000; border: none; padding: 6px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px; text-align: center; }
-        .admin-btn.ban { background: #ff4747; color: #fff; }
-        .admin-btn.danger { background: #b30000; color: #fff; }
+        .container { width: 100%; max-width: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; }
         
-        .lists-box { max-height: 150px; overflow-y: auto; background: #0f1015; border: 1px solid #333; border-radius: 6px; padding: 8px; font-size: 11px; margin-top: 5px; }
-        .list-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid #222; }
+        h1 { color: #ccff00; font-size: 26px; text-transform: uppercase; margin-bottom: 2px; text-align: center; }
+        .subtitle { color: #8a8d98; font-size: 11px; text-transform: uppercase; margin-bottom: 20px; text-align: center; letter-spacing: 1px; }
 
-        .roulette-box { width: 100%; background: #161821; border: 1px solid #2a2d3d; border-radius: 16px; padding: 20px; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 20px; height: 160px; overflow: hidden; }
-        .pointer-top, .pointer-bottom { position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; z-index: 10; }
-        .pointer-top { top: 8px; border-top: 10px solid #ccff00; }
-        .pointer-bottom { bottom: 8px; border-bottom: 10px solid #ccff00; }
-        
-        .items-track { display: flex; gap: 10px; position: absolute; transition: transform 4s cubic-bezier(0.1, 0.7, 0.1, 1); }
-        .item-card { min-width: 100px; height: 110px; background: #1f222e; border: 1px solid #2f3347; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
-        .item-icon { font-size: 28px; margin-bottom: 8px; }
-        .item-name { font-size: 12px; font-weight: 600; color: #fff; }
-
-        .spin-btn { width: 100%; background: #ccff00; color: #000; border: none; padding: 16px; border-radius: 14px; font-size: 16px; font-weight: 800; text-transform: uppercase; cursor: pointer; margin-bottom: 10px; transition: opacity 0.2s; }
-        .spin-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
-        .cooldown-text { font-size: 11px; color: #8a8d98; text-align: center; margin-bottom: 25px; }
-
-        .tabs { display: flex; width: 100%; background: #161821; border-radius: 14px; padding: 4px; margin-top: auto; border: 1px solid #2a2d3d; }
-        .tab { flex: 1; text-align: center; padding: 12px; font-size: 13px; font-weight: 600; color: #8a8d98; cursor: pointer; border-radius: 10px; transition: 0.2s; }
+        /* Вкладки */
+        .tabs { display: flex; width: 100%; background: #161821; border-radius: 14px; padding: 4px; margin-top: 15px; border: 1px solid #2a2d3d; flex-shrink: 0; }
+        .tab { flex: 1; text-align: center; padding: 10px; font-size: 12px; font-weight: 600; color: #8a8d98; cursor: pointer; border-radius: 10px; transition: 0.2s; }
         .tab.active { background: #1f222e; color: #ccff00; }
 
-        .view-section { width: 100%; display: none; flex-direction: column; gap: 10px; flex: 1; }
+        .view-section { width: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
         .view-section.active { display: flex; }
-        .inventory-item { background: #161821; border: 1px solid #2a2d3d; border-radius: 12px; padding: 12px; display: flex; align-items: center; justify-content: space-between; }
-        .inv-info { display: flex; align-items: center; gap: 12px; }
-        .inv-icon { font-size: 24px; }
-        .inv-name { font-size: 13px; font-weight: bold; }
-        .inv-code { font-size: 11px; color: #ccff00; background: #0f1015; padding: 4px 8px; border-radius: 6px; font-family: monospace; }
+
+        /* Рулетка */
+        .roulette-box { width: 100%; background: #161821; border: 1px solid #2a2d3d; border-radius: 16px; padding: 20px; display: flex; justify-content: center; align-items: center; position: relative; margin-bottom: 15px; height: 150px; overflow: hidden; }
+        .pointer-top, .pointer-bottom { position: absolute; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 8px solid transparent; border-right: 8px solid transparent; z-index: 10; }
+        .pointer-top { top: 6px; border-top: 10px solid #ccff00; }
+        .pointer-bottom { bottom: 6px; border-bottom: 10px solid #ccff00; }
         
-        .footer-bot { font-size: 11px; color: #555868; margin-top: 15px; text-align: center; }
+        .items-track { display: flex; gap: 10px; position: absolute; will-change: transform; }
+        .item-card { min-width: 95px; height: 100px; background: #1f222e; border: 1px solid #2f3347; border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 8px; text-align: center; }
+        .item-icon { font-size: 24px; margin-bottom: 6px; }
+        .item-name { font-size: 11px; font-weight: 600; color: #fff; }
+
+        .spin-btn { width: 100%; background: #ccff00; color: #000; border: none; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 800; text-transform: uppercase; cursor: pointer; margin-bottom: 8px; transition: opacity 0.2s; }
+        .spin-btn:disabled { background: #333; color: #777; cursor: not-allowed; }
+        .cooldown-text { font-size: 11px; color: #8a8d98; text-align: center; }
+
+        /* Инвентарь и Админка */
+        .content-box { width: 100%; max-height: 350px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; flex: 1; padding-right: 2px; }
+        .inventory-item { background: #161821; border: 1px solid #2a2d3d; border-radius: 12px; padding: 10px; display: flex; align-items: center; justify-content: space-between; width: 100%; }
+        .inv-info { display: flex; align-items: center; gap: 10px; }
+        .inv-icon { font-size: 22px; }
+        .inv-name { font-size: 12px; font-weight: bold; }
+        .inv-code { font-size: 11px; color: #ccff00; background: #0f1015; padding: 4px 8px; border-radius: 6px; font-family: monospace; }
+
+        /* Подвкладки админки */
+        .admin-subtabs { display: flex; gap: 4px; width: 100%; margin-bottom: 10px; }
+        .admin-subtab { flex: 1; background: #161821; border: 1px solid #2a2d3d; padding: 6px; text-align: center; font-size: 11px; border-radius: 8px; color: #8a8d98; cursor: pointer; }
+        .admin-subtab.active { background: #1f222e; color: #ccff00; border-color: #ccff00; }
+        
+        .admin-pane { display: none; width: 100%; flex-direction: column; gap: 8px; }
+        .admin-pane.active { display: flex; }
+
+        .admin-card { background: #161821; border: 1px solid #2a2d3d; border-radius: 10px; padding: 10px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+        .admin-card input, .admin-card select { background: #0f1015; border: 1px solid #333; color: #fff; padding: 6px; border-radius: 6px; font-size: 11px; width: 100%; margin-bottom: 4px; }
+        .admin-btn { background: #ccff00; color: #000; border: none; padding: 5px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 10px; text-align: center; }
+        .admin-btn.ban { background: #ff4747; color: #fff; }
+        .admin-btn.danger { background: #b30000; color: #fff; }
+
+        .footer-bot { font-size: 10px; color: #555868; margin-top: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- Вкладка: Рулетка -->
     <div id="roulette-view" class="view-section active">
         <h1>RUSHB</h1>
         <div class="subtitle">Бесплатная рулетка</div>
-
-        <div id="admin-panel">
-            <h3>Панель администратора</h3>
-            
-            <div class="admin-section">
-                <strong>Администраторы:</strong>
-                <div class="lists-box" id="admins-list">Загрузка...</div>
-                <div style="display: flex; gap: 6px; margin-top: 6px;">
-                    <input type="text" id="admin-username-input" placeholder="Юзернейм (например: ropogku)" style="margin-bottom:0;">
-                    <button class="admin-btn" onclick="modifyAdmin('add_admin')">Добавить</button>
-                    <button class="admin-btn danger" onclick="modifyAdmin('remove_admin')">Удалить</button>
-                </div>
-            </div>
-
-            <div class="admin-section" style="margin-bottom: 0;">
-                <strong>Пользователи (сброс таймера / бан):</strong>
-                <div class="lists-box" id="users-list">Загрузка...</div>
-            </div>
-        </div>
 
         <div class="roulette-box">
             <div class="pointer-top"></div>
@@ -87,20 +77,65 @@
         </div>
 
         <button id="spin-button" class="spin-btn" onclick="spinWheel()">КРУТИМ...</button>
-        <div class="cooldown-text">1 бесплатный прокрут каждые 24 часа</div>
+        <div class="cooldown-text" id="cooldown-label">1 бесплатный прокрут каждые 24 часа</div>
     </div>
 
+    <!-- Вкладка: Инвентарь -->
     <div id="inventory-view" class="view-section">
         <h1>Инвентарь</h1>
         <div class="subtitle">Ваши выигранные призы</div>
-        <div id="inventory-list" style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+        <div id="inventory-list" class="content-box">
             <div style="text-align: center; color: #666; margin-top: 40px;">Загрузка...</div>
         </div>
     </div>
 
+    <!-- Вкладка: Админ-панель (отображается только для админов) -->
+    <div id="admin-view" class="view-section">
+        <h1>Админка</h1>
+        <div class="subtitle">Управление проектом</div>
+        
+        <div class="admin-subtabs">
+            <div class="admin-subtab active" onclick="switchAdminTab('prizes')">Призы</div>
+            <div class="admin-subtab" onclick="switchAdminTab('users')">Юзеры</div>
+            <div class="admin-subtab" onclick="switchAdminTab('admins')">Админы</div>
+        </div>
+
+        <!-- Подвкладка: Призы -->
+        <div id="admin-prizes" class="admin-pane active content-box">
+            <div style="background: #161821; border: 1px solid #2a2d3d; border-radius: 10px; padding: 10px;">
+                <b style="font-size: 11px; color: #ccff00;">Добавить приз:</b>
+                <input type="text" id="new-prize-name" placeholder="Название приза" style="background:#0f1015; border:1px solid #333; color:#fff; padding:6px; width:100%; border-radius:6px; font-size:11px; margin-top:4px;">
+                <input type="text" id="new-prize-desc" placeholder="Описание" style="background:#0f1015; border:1px solid #333; color:#fff; padding:6px; width:100%; border-radius:6px; font-size:11px; margin-top:4px;">
+                <div style="display:flex; gap:4px; margin-top:4px;">
+                    <input type="text" id="new-prize-icon" placeholder="Иконка (🎮)" style="background:#0f1015; border:1px solid #333; color:#fff; padding:6px; width:50%; border-radius:6px; font-size:11px;">
+                    <input type="number" id="new-prize-weight" placeholder="Шанс (вес)" value="20" style="background:#0f1015; border:1px solid #333; color:#fff; padding:6px; width:50%; border-radius:6px; font-size:11px;">
+                </div>
+                <button class="admin-btn" style="width:100%; margin-top:6px; padding:8px;" onclick="addPrize()">Создать приз</button>
+            </div>
+            <div id="admin-prizes-list" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;"></div>
+        </div>
+
+        <!-- Подвкладка: Пользователи -->
+        <div id="admin-users" class="admin-pane content-box">
+            <div id="admin-users-list" style="display:flex; flex-direction:column; gap:6px;"></div>
+        </div>
+
+        <!-- Подвкладка: Админы -->
+        <div id="admin-admins" class="admin-pane content-box">
+            <div style="background: #161821; border: 1px solid #2a2d3d; border-radius: 10px; padding: 10px;">
+                <b style="font-size: 11px; color: #ccff00;">Добавить администратора:</b>
+                <input type="text" id="admin-username-input" placeholder="Юзернейм (без @)" style="background:#0f1015; border:1px solid #333; color:#fff; padding:6px; width:100%; border-radius:6px; font-size:11px; margin-top:4px;">
+                <button class="admin-btn" style="width:100%; margin-top:6px; padding:8px;" onclick="modifyAdmin('add_admin')">Добавить админа</button>
+            </div>
+            <div id="admin-admins-list" style="display:flex; flex-direction:column; gap:6px; margin-top:4px;"></div>
+        </div>
+    </div>
+
+    <!-- Общее нижнее меню навигации -->
     <div class="tabs">
         <div class="tab active" onclick="switchTab('roulette')">Рулетка</div>
         <div class="tab" onclick="switchTab('inventory')">Инвентарь</div>
+        <div class="tab" id="tab-admin-btn" style="display: none;" onclick="switchTab('admin')">Админка</div>
     </div>
 
     <div class="footer-bot">@cyber_fdsafdasdfasfa_bot</div>
@@ -127,7 +162,7 @@
             renderTrack(prizes);
 
             if (data.isAdmin) {
-                document.getElementById('admin-panel').style.display = 'block';
+                document.getElementById('tab-admin-btn').style.display = 'block';
                 loadAdminData();
             }
 
@@ -148,38 +183,89 @@
             const data = await res.json();
             if (!res.ok) return;
 
-            const adminsContainer = document.getElementById('admins-list');
-            adminsContainer.innerHTML = data.admins.map(adm => `<div class="list-row"><span>@${adm}</span></div>`).join('');
-
-            const usersContainer = document.getElementById('users-list');
-            if (data.users.length === 0) {
-                usersContainer.innerHTML = '<div style="padding: 4px; color: #666;">Нет пользователей</div>';
-                return;
-            }
-
-            usersContainer.innerHTML = data.users.map(u => `
-                <div class="list-row">
-                    <div>
-                        <b>@${u.username || 'без юзернейма'}</b> <span style="color:#777; font-size:10px;">(${u.id})</span>
-                        ${u.is_banned ? '<span style="color:red">[Бан]</span>' : ''}
-                    </div>
-                    <div style="display:flex; gap:4px;">
-                        <button class="admin-btn" style="padding: 2px 6px; font-size: 10px;" onclick="userAction('${u.id}', '${u.username || ''}', 'reset')">Сброс</button>
-                        <button class="admin-btn ban" style="padding: 2px 6px; font-size: 10px;" onclick="userAction('${u.id}', '${u.username || ''}', 'ban')">${u.is_banned ? 'Разбан' : 'Бан'}</button>
-                    </div>
+            // Список призов
+            document.getElementById('admin-prizes-list').innerHTML = data.prizes.map(p => `
+                <div class="admin-card">
+                    <div><b>${p.icon} ${p.name}</b> <span style="color:#777;">(вес: ${p.weight})</span></div>
+                    <button class="admin-btn danger" onclick="deletePrize(${p.id})">Удалить</button>
                 </div>
             `).join('');
+
+            // Список пользователей
+            const usersContainer = document.getElementById('admin-users-list');
+            if (data.users.length === 0) {
+                usersContainer.innerHTML = '<div style="color: #666; text-align:center;">Нет пользователей</div>';
+            } else {
+                usersContainer.innerHTML = data.users.map(u => `
+                    <div class="admin-card">
+                        <div>
+                            <b>@${u.username || 'без юзернейма'}</b> <span style="color:#777; font-size:9px;">(${u.id})</span>
+                            ${u.is_banned ? '<span style="color:red">[Бан]</span>' : ''}
+                        </div>
+                        <div style="display:flex; gap:4px;">
+                            <button class="admin-btn" onclick="userAction('${u.id}', '${u.username || ''}', 'reset')">Сброс</button>
+                            <button class="admin-btn ban" onclick="userAction('${u.id}', '${u.username || ''}', 'ban')">${u.is_banned ? 'Разбан' : 'Бан'}</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Список админов
+            document.getElementById('admin-admins-list').innerHTML = data.admins.map(adm => `
+                <div class="admin-card">
+                    <span>@${adm}</span>
+                    <button class="admin-btn danger" onclick="removeAdmin('${adm}')">Удалить</button>
+                </div>
+            `).join('');
+
         } catch (e) {
             console.error("Ошибка загрузки админ-данных", e);
         }
     }
 
+    async function addPrize() {
+        const name = document.getElementById('new-prize-name').value.trim();
+        const description = document.getElementById('new-prize-desc').value.trim();
+        const icon = document.getElementById('new-prize-icon').value.trim() || '🎁';
+        const weight = parseInt(document.getElementById('new-prize-weight').value) || 10;
+
+        if (!name) { alert('Введите название приза'); return; }
+
+        try {
+            const res = await fetch('/api/admin/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: userId, adminUsername: username, actionType: 'add_prize', prizeData: { name, description, icon, weight } })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (res.ok) {
+                document.getElementById('new-prize-name').value = '';
+                document.getElementById('new-prize-desc').value = '';
+                document.getElementById('new-prize-icon').value = '';
+                loadAdminData();
+                initApp();
+            }
+        } catch (e) { alert('Ошибка запроса'); }
+    }
+
+    async function deletePrize(id) {
+        if (!confirm('Удалить этот приз?')) return;
+        try {
+            const res = await fetch('/api/admin/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: userId, adminUsername: username, actionType: 'delete_prize', prizeData: { id } })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (res.ok) { loadAdminData(); initApp(); }
+        } catch (e) { alert('Ошибка запроса'); }
+    }
+
     async function modifyAdmin(actionType) {
         const targetUsername = document.getElementById('admin-username-input').value.trim();
-        if (!targetUsername) {
-            alert('Введите юзернейм');
-            return;
-        }
+        if (!targetUsername) { alert('Введите юзернейм'); return; }
 
         try {
             const res = await fetch('/api/admin/action', {
@@ -189,13 +275,21 @@
             });
             const data = await res.json();
             alert(data.message);
-            if (res.ok) {
-                document.getElementById('admin-username-input').value = '';
-                loadAdminData();
-            }
-        } catch (e) {
-            alert('Ошибка запроса');
-        }
+            if (res.ok) { document.getElementById('admin-username-input').value = ''; loadAdminData(); }
+        } catch (e) { alert('Ошибка запроса'); }
+    }
+
+    async function removeAdmin(targetUsername) {
+        try {
+            const res = await fetch('/api/admin/action', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId: userId, adminUsername: username, targetUsername, actionType: 'remove_admin' })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if (res.ok) loadAdminData();
+        } catch (e) { alert('Ошибка запроса'); }
     }
 
     async function userAction(targetId, targetUsername, actionType) {
@@ -208,15 +302,21 @@
             const data = await res.json();
             alert(data.message);
             if (res.ok) loadAdminData();
-        } catch (e) {
-            alert('Ошибка запроса');
-        }
+        } catch (e) { alert('Ошибка запроса'); }
     }
 
     function renderTrack(items) {
         const track = document.getElementById('track');
+        track.style.transition = 'none';
+        track.style.transform = 'translateX(0px)';
         track.innerHTML = '';
-        const fullList = [...items, ...items, ...items, ...items];
+        
+        // Создаем длинную ленту для плавной анимации прокрутки
+        const fullList = [];
+        for (let i = 0; i < 6; i++) {
+            fullList.push(...items);
+        }
+        
         fullList.forEach(p => {
             track.innerHTML += `
                 <div class="item-card">
@@ -275,19 +375,34 @@
                 return;
             }
 
+            if (data.prizesList) prizes = data.prizesList;
+
             const track = document.getElementById('track');
+            renderTrack(prizes); // Перерендерим ленту под актуальный список
+
             const winningIndex = prizes.findIndex(p => p.id === data.prize.id);
-            const cardWidth = 110;
-            const offset = (winningIndex + prizes.length * 2) * cardWidth - 140;
+            const cardWidth = 105; // 95px ширина карточки + 10px gap
             
-            track.style.transition = 'transform 4s cubic-bezier(0.1, 0.7, 0.1, 1)';
+            // Выбираем круг прокрутки (например, 3-й полный цикл) и смещаем на нужную карточку по центру
+            const targetCycle = 3;
+            const containerWidth = document.querySelector('.roulette-box').offsetWidth;
+            const centerOffset = (containerWidth / 2) - (cardWidth / 2);
+            const offset = (targetCycle * prizes.length + winningIndex) * cardWidth - centerOffset;
+            
+            // Сбрасываем transition и форсируем перерисовку, затем плавно анимируем
+            track.style.transition = 'none';
+            track.style.transform = 'translateX(0px)';
+            track.offsetHeight; // force reflow
+
+            track.style.transition = 'transform 4.5s cubic-bezier(0.15, 0.85, 0.15, 1)';
             track.style.transform = `translateX(-${offset}px)`;
 
             setTimeout(() => {
                 alert(`Поздравляем! Вы выиграли: ${data.prize.name}\nПромокод: ${data.promoCode}`);
                 isSpinning = false;
-                location.reload();
-            }, 4200);
+                nextSpinTimestamp = Date.now() + 24 * 60 * 60 * 1000;
+                startTimer();
+            }, 4700);
 
         } catch (e) {
             console.error(e);
@@ -336,10 +451,30 @@
         if (tabName === 'roulette') {
             document.querySelectorAll('.tab')[0].classList.add('active');
             document.getElementById('roulette-view').classList.add('active');
-        } else {
+        } else if (tabName === 'inventory') {
             document.querySelectorAll('.tab')[1].classList.add('active');
             document.getElementById('inventory-view').classList.add('active');
             loadInventory();
+        } else if (tabName === 'admin') {
+            document.getElementById('tab-admin-btn').classList.add('active');
+            document.getElementById('admin-view').classList.add('active');
+            loadAdminData();
+        }
+    }
+
+    function switchAdminTab(subTabName) {
+        document.querySelectorAll('.admin-subtab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.admin-pane').forEach(p => p.classList.remove('active'));
+
+        if (subTabName === 'prizes') {
+            document.querySelectorAll('.admin-subtab')[0].classList.add('active');
+            document.getElementById('admin-prizes').classList.add('active');
+        } else if (subTabName === 'users') {
+            document.querySelectorAll('.admin-subtab')[1].classList.add('active');
+            document.getElementById('admin-users').classList.add('active');
+        } else if (subTabName === 'admins') {
+            document.querySelectorAll('.admin-subtab')[2].classList.add('active');
+            document.getElementById('admin-admins').classList.add('active');
         }
     }
 
