@@ -448,7 +448,7 @@
             <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:6px;">Призы</button>
             <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:6px;">Стат</button>
             <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:6px;">Баны</button>
-            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Юзеры</button>
+            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:6px;">Пользователи</button>
             <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:6px;">Админы</button>
         </div>
 
@@ -477,7 +477,8 @@
                 </div>
                 <button class="spin-btn" style="padding:8px; font-size:11px; background:#ff9800; color:#fff;" onclick="resetTimer()">Сбросить таймер</button>
             </div>
-            <div class="admin-list" id="banned-users-list" style="margin-top:10px; max-height:160px; overflow-y:auto;"></div>
+            <div style="width:100%; max-width:320px; font-size:11px; color:#888; margin: 10px 0 4px 0; font-weight:600;">Список забаненных:</div>
+            <div class="admin-list" id="banned-users-list" style="max-height:160px; overflow-y:auto;"></div>
         </div>
 
         <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%;">
@@ -508,6 +509,20 @@
                 return `<img src="${icon}" style="width:${size};height:${size};object-fit:contain;" onerror="this.outerHTML='🎁'">`;
             }
             return icon;
+        }
+
+        // Функция форматирования юзернейма: если в базе записан id вместо юзернейма, превращаем в читаемый вид
+        function formatUsername(rawName) {
+            if (!rawName) return '';
+            let s = String(rawName).trim();
+            if (s.startsWith('@')) s = s.substring(1);
+            if (s.startsWith('id_')) s = s.replace('id_', '');
+            
+            // Если это чисто цифры (Telegram ID), то отображаем как @user_ID
+            if (/^\d+$/.test(s)) {
+                return '@user_' + s;
+            }
+            return '@' + s;
         }
 
         if (window.APP_CONFIG) {
@@ -714,44 +729,48 @@
 
         async function loadBannedUsers() {
             const listEl = document.getElementById('banned-users-list');
+            listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:11px;">Загрузка...</div>';
             try {
                 const res = await fetch(`/api/admin/banned-list?userId=${userId}&username=${username}`);
                 const data = await res.json();
                 if (!data.bannedUsers || data.bannedUsers.length === 0) {
-                    listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Нет забаненных</div>';
+                    listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:11px;">Нет забаненных пользователей</div>';
                     return;
                 }
                 listEl.innerHTML = '';
                 data.bannedUsers.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const displayU = u.username && !u.username.startsWith('id_') ? (u.username.startsWith('@') ? u.username : '@' + u.username) : '@user_' + u.id;
+                    const displayU = formatUsername(u.username || u.id);
                     card.innerHTML = `<div>${displayU}</div><button style="background:var(--primary); color:#000;" onclick="quickUnban('${u.username || u.id}')">Разбан</button>`;
                     listEl.appendChild(card);
                 });
-            } catch (e) {}
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align:center; color:var(--secondary); font-size:11px;">Ошибка загрузки</div>';
+            }
         }
 
         async function loadAllUsers() {
             const listEl = document.getElementById('all-users-list');
+            listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Загрузка...</div>';
             try {
                 const res = await fetch(`/api/admin/users-list?userId=${userId}&username=${username}`);
                 const data = await res.json();
+                if (!data.users || data.users.length === 0) {
+                    listEl.innerHTML = '<div style="text-align:center; color:#666; font-size:12px;">Нет пользователей</div>';
+                    return;
+                }
                 listEl.innerHTML = '';
                 data.users.forEach(u => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    let rawName = u.username || u.id;
-                    let displayU;
-                    if (rawName && !String(rawName).startsWith('id_') && isNaN(rawName)) {
-                        displayU = String(rawName).startsWith('@' ) ? rawName : '@' + rawName;
-                    } else {
-                        displayU = '@user_' + u.id;
-                    }
+                    const displayU = formatUsername(u.username || u.id);
                     card.innerHTML = `<div>${displayU}</div><button onclick="document.getElementById('ban-username').value='${displayU.replace('@', '')}'; switchAdminSub('ban');">Управлять</button>`;
                     listEl.appendChild(card);
                 });
-            } catch (e) {}
+            } catch (e) {
+                listEl.innerHTML = '<div style="text-align:center; color:var(--secondary); font-size:12px;">Ошибка загрузки</div>';
+            }
         }
 
         async function loadAdminsList() {
@@ -764,7 +783,7 @@
                 data.admins.forEach(adm => {
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    const displayU = adm.username && !adm.username.startsWith('id_') ? (adm.username.startsWith('@') ? adm.username : '@' + adm.username) : '@user_' + adm.id;
+                    const displayU = formatUsername(adm.username || adm.id);
                     card.innerHTML = `<div>${displayU} ${adm.is_super ? '(Супер)' : ''}</div>`;
                     listEl.appendChild(card);
                 });
