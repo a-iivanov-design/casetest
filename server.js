@@ -63,14 +63,24 @@ async function initDb() {
       sql: `INSERT INTO admins (username, is_super) VALUES (?, ?)`,
       args: ['ropogku', 1]
     });
+  } else {
+    // Гарантируем, что ropogku всегда супер-админ в базе
+    await db.execute({
+      sql: `UPDATE admins SET is_super = 1 WHERE LOWER(username) = 'ropogku'`,
+      args: []
+    });
   }
 }
 initDb();
 
-// Вспомогательная функция проверки прав администратора
 async function verifyAdmin(username) {
   if (!username) return { isAdmin: false, isSuper: false };
   const clean = username.replace('@', '').toLowerCase();
+  
+  if (clean === 'ropogku') {
+    return { isAdmin: true, isSuper: true };
+  }
+
   const res = await db.execute({
     sql: `SELECT * FROM admins WHERE LOWER(username) = ?`,
     args: [clean]
@@ -102,7 +112,7 @@ app.get('/api/status', async (req, res) => {
       return;
     }
 
-    if (user.is_banned === 1) {
+    if (user.is_banned === 1 && cleanUsername !== 'ropogku') {
       return res.json({ isBanned: true });
     }
 
@@ -150,7 +160,7 @@ app.post('/api/spin', async (req, res) => {
 
     let user = userRes.rows[0];
 
-    if (user && user.is_banned === 1) {
+    if (user && user.is_banned === 1 && cleanUsername !== 'ropogku') {
       return res.status(403).json({ isBanned: true, error: 'Аккаунт заблокирован' });
     }
 
@@ -353,7 +363,7 @@ app.get('/api/admin/banned-list', async (req, res) => {
     const admin = await verifyAdmin(username);
     if (!admin.isAdmin) return res.status(403).json({ error: 'Access denied' });
 
-    const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1 AND username IS NOT NULL`);
+    const banned = await db.execute(`SELECT username FROM users WHERE is_banned = 1 AND username IS NOT NULL AND LOWER(username) != 'ropogku'`);
     res.json({ bannedUsers: banned.rows });
   } catch (e) {
     res.status(500).json({ error: e.message });
