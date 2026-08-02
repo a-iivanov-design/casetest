@@ -822,10 +822,8 @@
             menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
-        // Выпадающие шестеренки для игроков
         function toggleUserMenu(event, targetIdentifier) {
             event.stopPropagation();
-            // Закрываем все остальные меню
             document.querySelectorAll('.user-dropdown-menu').forEach(m => {
                 if (m.id !== `user-menu-${targetIdentifier}`) m.style.display = 'none';
             });
@@ -912,7 +910,10 @@
                     card.className = 'inventory-card';
                     card.innerHTML = `
                         <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">
-                            <div style="font-weight:700; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis;">${getIconHtml(item.icon, '20px')} ${item.prize_name}</div>
+                            <div style="font-weight:700; margin-bottom:2px; overflow:hidden; text-overflow:ellipsis; display: flex; align-items: center; gap: 6px;">
+                                ${getIconHtml(item.icon, '20px')} 
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.prize_name}</span>
+                            </div>
                             <div style="font-size:10px; color:var(--text-muted);">Код: <span style="color:var(--text-main); font-weight:700;">${item.promo}</span></div>
                             ${formattedDate ? `<div style="font-size:9px; color:var(--text-muted); margin-top:2px;">Получено: ${formattedDate}</div>` : ''}
                             <div style="font-size:9px; color:var(--text-muted); margin-top:1px;">Срок: ${item.hoursLeft}ч</div>
@@ -1035,7 +1036,6 @@
             } catch (e) {}
         }
 
-        // Загрузка списка пользователей с меню-шестеренкой
         async function loadAllUsers() {
             const listEl = document.getElementById('all-users-list');
             try {
@@ -1082,7 +1082,6 @@
             } catch (e) {}
         }
 
-        // Действия из меню пользователя
         async function actionUserBan(targetUsername, banState) {
             if (!targetUsername) return alert('У пользователя нет username');
             const res = await fetch('/api/admin/ban', {
