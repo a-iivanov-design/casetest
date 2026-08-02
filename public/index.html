@@ -47,43 +47,42 @@
             pointer-events: none;
         }
 
-        /* Обновленная шапка с использованием flex для защиты от перекрытий */
+        /* Шапка с шестеренкой слева и логотипом по центру */
         .top-bar {
             width: 100%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 52px;
+            height: 48px;
             flex-shrink: 0;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 0 10px;
+            padding: 0 12px;
             box-sizing: border-box;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            gap: 8px;
+            gap: 10px;
         }
 
         .admin-entry-btn {
-            background: rgba(255, 255, 255, 0.05);
+            background: rgba(255, 255, 255, 0.04);
             color: var(--text-muted);
             border: 1px solid var(--border-color);
-            padding: 6px 10px;
+            width: 36px;
+            height: 36px;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
+            font-size: 18px;
             display: none;
             align-items: center;
-            gap: 4px;
+            justify-content: center;
             transition: all 0.2s ease;
             z-index: 5;
             flex-shrink: 0;
-            white-space: nowrap;
         }
         .admin-entry-btn:hover {
             color: var(--text-main);
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.08);
             border-color: var(--border-active);
         }
 
@@ -99,7 +98,7 @@
         }
 
         .club-logo-img {
-            max-height: 30px;
+            max-height: 28px;
             max-width: 100%;
             object-fit: contain;
         }
@@ -663,11 +662,11 @@
     </div>
 
     <div class="top-bar">
-        <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">
-            ← Панель
+        <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')" title="Панель администратора">
+            ⚙️
         </button>
-        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">
-            ✕ Закрыть
+        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;" title="Закрыть панель">
+            ✕
         </button>
 
         <div class="header-logo-container" id="header-logo-box">
