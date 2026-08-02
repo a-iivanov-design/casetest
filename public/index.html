@@ -262,12 +262,21 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 0; height: 0;
-            border-left: 6px solid transparent;
-            border-right: 6px solid transparent;
+            width: 0; 
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
         }
-        .selector-center-box::before { top: 2px; border-bottom: 8px solid var(--primary); }
-        .selector-center-box::after { bottom: 2px; border-top: 8px solid var(--primary); }
+        .selector-center-box::before { 
+            top: 4px; 
+            border-top: 8px solid var(--primary); 
+            border-bottom: none;
+        }
+        .selector-center-box::after { 
+            bottom: 4px; 
+            border-bottom: 8px solid var(--primary); 
+            border-top: none;
+        }
 
         .action-area {
             width: 100%;
