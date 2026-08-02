@@ -301,6 +301,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 6px 20px rgba(245, 166, 35, 0.25);
+            pointer-events: auto;
         }
         button.spin-btn:not(:disabled):hover {
             filter: brightness(1.1);
@@ -379,10 +380,9 @@
             border-radius: 10px;
             font-weight: 700;
             outline: none;
-            transition: border-color 0.2s;
-        }
-        .admin-card input:focus {
-            border-color: var(--primary);
+            pointer-events: auto;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         .admin-card button, .inventory-card button {
@@ -395,6 +395,7 @@
             font-size: 11px;
             font-weight: 700;
             transition: all 0.2s ease;
+            pointer-events: auto;
         }
         .admin-card button:hover, .inventory-card button:hover {
             background: var(--secondary);
@@ -408,8 +409,10 @@
             gap: 8px;
             margin-top: 8px;
             box-sizing: border-box;
+            pointer-events: auto;
         }
 
+        /* Исправление полей ввода для работы в Telegram Desktop */
         .add-prize-form input {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -421,6 +424,9 @@
             width: 100%;
             box-sizing: border-box;
             transition: all 0.2s ease;
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
         }
         .add-prize-form input:focus {
             border-color: var(--primary);
@@ -476,7 +482,6 @@
             color: var(--text-main);
         }
 
-        /* Компактный верхний блок шапки админки с тремя точками */
         .admin-header-row {
             width: 100%;
             display: flex;
@@ -490,6 +495,8 @@
             border-radius: 14px;
             box-sizing: border-box;
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 20;
+            position: relative;
         }
 
         .admin-section-title {
@@ -519,6 +526,7 @@
             justify-content: center;
             transition: all 0.2s;
             letter-spacing: 1px;
+            pointer-events: auto;
         }
         .admin-dots-btn:hover {
             color: var(--text-main);
@@ -556,6 +564,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            pointer-events: auto;
         }
         .admin-dropdown-item:hover, .admin-dropdown-item.active {
             background: rgba(255, 255, 255, 0.06);
@@ -591,6 +600,7 @@
             cursor: pointer;
             transition: all 0.2s ease;
             text-align: center;
+            pointer-events: auto;
         }
 
         .nav-toggle-btn.active {
