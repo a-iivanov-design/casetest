@@ -427,7 +427,6 @@
             background: #191C24;
         }
 
-        /* Улучшенный дизайн сетки статистики */
         .stats-grid {
             width: 100%;
             display: grid;
@@ -477,41 +476,61 @@
             color: var(--text-main);
         }
 
-        /* Бургер-меню для админки */
-        .admin-burger-wrap {
-            position: relative;
+        /* Компактный верхний блок шапки админки с тремя точками */
+        .admin-header-row {
             width: 100%;
-            margin-bottom: 10px;
-            flex-shrink: 0;
-        }
-
-        .admin-burger-btn {
-            width: 100%;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 12px 16px;
-            border-radius: 14px;
-            font-size: 13px;
-            font-weight: 700;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            cursor: pointer;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            padding: 8px 14px;
+            border-radius: 14px;
             box-sizing: border-box;
             box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-            transition: border-color 0.2s;
         }
-        .admin-burger-btn:hover {
-            border-color: var(--border-active);
+
+        .admin-section-title {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .admin-menu-wrap {
+            position: relative;
+        }
+
+        .admin-dots-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            letter-spacing: 1px;
+        }
+        .admin-dots-btn:hover {
+            color: var(--text-main);
+            background: rgba(255, 255, 255, 0.06);
         }
 
         .admin-dropdown-menu {
             display: none;
             position: absolute;
             top: calc(100% + 6px);
-            left: 0;
-            width: 100%;
+            right: 0;
+            width: 180px;
             background: #14161C;
             border: 1px solid var(--border-color);
             border-radius: 14px;
@@ -670,19 +689,19 @@
     </div>
 
     <div id="section-admin" class="view-section" style="justify-content: flex-start;">
-        <!-- Бургер-меню для админки -->
-        <div class="admin-burger-wrap">
-            <button class="admin-burger-btn" onclick="toggleAdminMenu()">
-                <span id="current-admin-title">📦 Призы</span>
-                <span style="font-size: 14px;">▼</span>
-            </button>
-            <div class="admin-dropdown-menu" id="admin-dropdown-menu">
-                <button class="admin-dropdown-item active" id="subtab-prizes" onclick="switchAdminSub('prizes')">📦 Призы</button>
-                <button class="admin-dropdown-item" id="subtab-add-prize" onclick="switchAdminSub('add-prize')">➕ Добавить приз</button>
-                <button class="admin-dropdown-item" id="subtab-stats" onclick="switchAdminSub('stats')">📊 Статистика</button>
-                <button class="admin-dropdown-item" id="subtab-ban" onclick="switchAdminSub('ban')">🛡️ Баны</button>
-                <button class="admin-dropdown-item" id="subtab-users" onclick="switchAdminSub('users')">👥 Игроки</button>
-                <button class="admin-dropdown-item" id="subtab-admins" onclick="switchAdminSub('admins')">🔑 Админы</button>
+        <!-- Аккуратная панель шапки админки с тремя точками -->
+        <div class="admin-header-row">
+            <div class="admin-section-title" id="current-admin-title">📦 Призы</div>
+            <div class="admin-menu-wrap">
+                <button class="admin-dots-btn" onclick="toggleAdminMenu()">⋮</button>
+                <div class="admin-dropdown-menu" id="admin-dropdown-menu">
+                    <button class="admin-dropdown-item active" id="subtab-prizes" onclick="switchAdminSub('prizes')">📦 Призы</button>
+                    <button class="admin-dropdown-item" id="subtab-add-prize" onclick="switchAdminSub('add-prize')">➕ Добавить приз</button>
+                    <button class="admin-dropdown-item" id="subtab-stats" onclick="switchAdminSub('stats')">📊 Статистика</button>
+                    <button class="admin-dropdown-item" id="subtab-ban" onclick="switchAdminSub('ban')">🛡️ Баны</button>
+                    <button class="admin-dropdown-item" id="subtab-users" onclick="switchAdminSub('users')">👥 Игроки</button>
+                    <button class="admin-dropdown-item" id="subtab-admins" onclick="switchAdminSub('admins')">🔑 Админы</button>
+                </div>
             </div>
         </div>
 
@@ -876,7 +895,7 @@
         }
 
         window.addEventListener('click', function(e) {
-            if (!e.target.closest('.admin-burger-wrap')) {
+            if (!e.target.closest('.admin-menu-wrap')) {
                 const menu = document.getElementById('admin-dropdown-menu');
                 if (menu) menu.style.display = 'none';
             }
