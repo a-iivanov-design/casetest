@@ -80,7 +80,6 @@
             transition: all 0.2s ease;
             z-index: 25;
             flex-shrink: 0;
-            pointer-events: auto;
         }
         .admin-entry-btn:hover {
             color: var(--text-main);
@@ -308,7 +307,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             box-shadow: 0 6px 20px rgba(245, 166, 35, 0.25);
-            pointer-events: auto;
         }
         button.spin-btn:not(:disabled):hover {
             filter: brightness(1.1);
@@ -346,7 +344,6 @@
             padding-right: 2px;
             box-sizing: border-box;
             margin-top: 4px;
-            pointer-events: auto;
         }
 
         .inventory-list, .admin-list {
@@ -354,7 +351,6 @@
             display: flex;
             flex-direction: column;
             gap: 8px;
-            pointer-events: auto;
         }
 
         .inventory-card, .admin-card {
@@ -369,7 +365,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             width: 100%;
             box-sizing: border-box;
-            pointer-events: auto;
         }
 
         .admin-card input {
@@ -382,9 +377,8 @@
             border-radius: 10px;
             font-weight: 700;
             outline: none;
-            pointer-events: auto !important;
-            user-select: text !important;
-            -webkit-user-select: text !important;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         .admin-card button, .inventory-card button {
@@ -397,7 +391,8 @@
             font-size: 11px;
             font-weight: 700;
             transition: all 0.2s ease;
-            pointer-events: auto;
+            z-index: 5;
+            position: relative;
         }
         .admin-card button:hover, .inventory-card button:hover {
             background: var(--secondary);
@@ -411,7 +406,6 @@
             gap: 8px;
             margin-top: 8px;
             box-sizing: border-box;
-            pointer-events: auto;
         }
 
         .add-prize-form input {
@@ -424,9 +418,8 @@
             outline: none;
             width: 100%;
             box-sizing: border-box;
-            pointer-events: auto !important;
-            user-select: text !important;
-            -webkit-user-select: text !important;
+            user-select: text;
+            -webkit-user-select: text;
         }
         .add-prize-form input:focus {
             border-color: var(--primary);
@@ -495,7 +488,6 @@
             padding: 4px 8px;
             border-radius: 8px;
             display: flex; align-items: center; justify-content: center;
-            pointer-events: auto;
         }
         .admin-dots-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.06); }
 
@@ -514,7 +506,6 @@
             padding: 6px;
             flex-direction: column;
             gap: 4px;
-            pointer-events: auto;
         }
 
         .admin-dropdown-item {
@@ -528,7 +519,6 @@
             border-radius: 10px;
             cursor: pointer;
             display: flex; align-items: center; gap: 8px;
-            pointer-events: auto;
         }
         .admin-dropdown-item:hover, .admin-dropdown-item.active {
             background: rgba(255, 255, 255, 0.06);
@@ -562,7 +552,6 @@
             border-radius: 12px;
             cursor: pointer;
             text-align: center;
-            pointer-events: auto;
         }
         .nav-toggle-btn.active {
             background: var(--primary);
@@ -941,7 +930,7 @@
                             ${formattedDate ? `<div style="font-size:9px; color:var(--text-muted); margin-top:2px;">Получено: ${formattedDate}</div>` : ''}
                             <div style="font-size:9px; color:var(--text-muted); margin-top:1px;">Срок: ${item.hoursLeft}ч</div>
                         </div>
-                        <button onclick="deleteInventoryItem(${item.id})">Удалить</button>
+                        <button type="button" onclick="deleteInventoryItem(${item.id})">Удалить</button>
                     `;
                     listEl.appendChild(card);
                 });
@@ -956,7 +945,7 @@
                 const res = await fetch('/api/inventory/delete', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, itemId })
+                    body: JSON.stringify({ userId, itemId: Number(itemId) })
                 });
                 const data = await res.json();
                 if (data.error) { alert(data.error); return; }
@@ -985,7 +974,7 @@
                             <div style="display: flex; align-items: center; gap: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${getIconHtml(p.icon, '18px')} <b style="overflow: hidden; text-overflow: ellipsis; font-weight:700;">${p.name}</b></div>
                             <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
                                 <input type="number" id="weight-${p.id}" value="${p.weight}" autocomplete="off" onchange="updateWeight(${p.id})">
-                                <button onclick="deletePrize(${p.id})">Удалить</button>
+                                <button type="button" onclick="deletePrize(${p.id})">Удалить</button>
                             </div>
                         `;
                         listEl.appendChild(card);
@@ -1053,7 +1042,7 @@
                     if (u.username.toLowerCase() === 'ropogku') return;
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    card.innerHTML = `<div>@${u.username}</div><button style="background:rgba(255,255,255,0.08); color:var(--text-main);" onclick="quickUnban('${u.username}')">Разбан</button>`;
+                    card.innerHTML = `<div>@${u.username}</div><button type="button" style="background:rgba(255,255,255,0.08); color:var(--text-main);" onclick="quickUnban('${u.username}')">Разбан</button>`;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
@@ -1082,13 +1071,13 @@
                     if (!isRopogkuUser) {
                         menuHtml = `
                             <div class="user-menu-wrap" style="position:relative;">
-                                <button class="admin-dots-btn" onclick="toggleUserMenu(event, '${targetIdentifier}')">⚙️</button>
+                                <button type="button" class="admin-dots-btn" onclick="toggleUserMenu(event, '${targetIdentifier}')">⚙️</button>
                                 <div class="user-dropdown-menu admin-dropdown-menu" id="user-menu-${targetIdentifier}">
-                                    <button class="admin-dropdown-item" style="color:var(--secondary);" onclick="actionUserBan('${cleanUser}', 1)">🛡️ Забанить</button>
-                                    <button class="admin-dropdown-item" onclick="actionUserBan('${cleanUser}', 0)">✅ Разбанить</button>
-                                    <button class="admin-dropdown-item" onclick="actionResetTimer('${cleanUser}')">⏳ Сбросить таймер</button>
-                                    <button class="admin-dropdown-item" onclick="actionMakeAdmin('${cleanUser}')">🔑 Назначить админом</button>
-                                    <button class="admin-dropdown-item" style="color:var(--secondary);" onclick="deleteUser('${targetIdentifier}')">🗑️ Удалить</button>
+                                    <button type="button" class="admin-dropdown-item" style="color:var(--secondary);" onclick="actionUserBan('${cleanUser}', 1)">🛡️ Забанить</button>
+                                    <button type="button" class="admin-dropdown-item" onclick="actionUserBan('${cleanUser}', 0)">✅ Разбанить</button>
+                                    <button type="button" class="admin-dropdown-item" onclick="actionResetTimer('${cleanUser}')">⏳ Сбросить таймер</button>
+                                    <button type="button" class="admin-dropdown-item" onclick="actionMakeAdmin('${cleanUser}')">🔑 Назначить админом</button>
+                                    <button type="button" class="admin-dropdown-item" style="color:var(--secondary);" onclick="deleteUser('${targetIdentifier}')">🗑️ Удалить</button>
                                 </div>
                             </div>
                         `;
@@ -1156,7 +1145,7 @@
                     card.className = 'admin-card';
                     let actionBtn = '';
                     if (isSuperAdmin && !isTargetRopogku) {
-                        actionBtn = `<button style="background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color);" onclick="removeAdmin('${adm.username}')">Снять</button>`;
+                        actionBtn = `<button type="button" style="background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color);" onclick="removeAdmin('${adm.username}')">Снять</button>`;
                     }
                     card.innerHTML = `<div>@${adm.username} ${adm.is_super ? '(Супер)' : ''}</div>${actionBtn}`;
                     listEl.appendChild(card);
@@ -1217,7 +1206,7 @@
             await fetch('/api/admin/update-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, prizeId, weight })
+                body: JSON.stringify({ username, prizeId: Number(prizeId), weight })
             });
         }
 
@@ -1257,7 +1246,7 @@
             await fetch('/api/admin/delete-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, prizeId })
+                body: JSON.stringify({ username, prizeId: Number(prizeId) })
             });
             loadAdminPrizes();
         }
