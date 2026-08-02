@@ -47,6 +47,7 @@
             pointer-events: none;
         }
 
+        /* Обновленная шапка с использованием flex для защиты от перекрытий */
         .top-bar {
             width: 100%;
             display: flex;
@@ -54,29 +55,31 @@
             align-items: center;
             height: 52px;
             flex-shrink: 0;
-            position: relative;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
-            padding: 0 14px;
+            padding: 0 10px;
             box-sizing: border-box;
             box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            gap: 8px;
         }
 
         .admin-entry-btn {
             background: rgba(255, 255, 255, 0.05);
             color: var(--text-muted);
             border: 1px solid var(--border-color);
-            padding: 6px 12px;
+            padding: 6px 10px;
             border-radius: 10px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             display: none;
             align-items: center;
-            gap: 6px;
+            gap: 4px;
             transition: all 0.2s ease;
             z-index: 5;
+            flex-shrink: 0;
+            white-space: nowrap;
         }
         .admin-entry-btn:hover {
             color: var(--text-main);
@@ -85,29 +88,32 @@
         }
 
         .header-logo-container {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
+            flex: 1;
             display: flex;
             align-items: center;
             justify-content: center;
             height: 100%;
-            width: 70%;
-            text-align: center;
+            overflow: hidden;
+            padding: 0 4px;
+            box-sizing: border-box;
         }
 
         .club-logo-img {
-            max-height: 32px;
-            max-width: 180px;
+            max-height: 30px;
+            max-width: 100%;
             object-fit: contain;
         }
 
         .club-logo-text {
-            font-size: 16px;
+            font-size: 14px;
             font-weight: 800;
             color: var(--text-main);
-            letter-spacing: 0.8px;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            text-align: center;
         }
         .club-logo-text span {
             color: var(--primary);
@@ -412,7 +418,6 @@
             pointer-events: auto;
         }
 
-        /* Исправление полей ввода для работы в Telegram Desktop */
         .add-prize-form input {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -699,7 +704,6 @@
     </div>
 
     <div id="section-admin" class="view-section" style="justify-content: flex-start;">
-        <!-- Аккуратная панель шапки админки с тремя точками -->
         <div class="admin-header-row">
             <div class="admin-section-title" id="current-admin-title">📦 Призы</div>
             <div class="admin-menu-wrap">
@@ -787,7 +791,7 @@
             if (cfg.clubLogoImage) {
                 logoBox.innerHTML = `<img src="${cfg.clubLogoImage}" class="club-logo-img" alt="Logo">`;
             } else if (cfg.clubLogoText) {
-                document.getElementById('club-logo-text').innerHTML = cfg.clubLogoText;
+                logoBox.innerHTML = `<div class="club-logo-text">${cfg.clubLogoText}</div>`;
             }
 
             const caseIconContainer = document.getElementById('case-preview-icon');
