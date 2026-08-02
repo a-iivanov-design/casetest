@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
     // Название клуба или текст логотипа
-    clubLogoText: "CASE <span>LOUNGE</span>",
+    clubLogoText: "Дорогая, я играю",
     
     // Ссылка на логотип в шапке (пустое '' включит текстовый логотип выше)
     clubLogoImage: "", 
