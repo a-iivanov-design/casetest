@@ -278,7 +278,7 @@ app.post('/api/inventory/delete', async (req, res) => {
 
     await db.execute({
       sql: `DELETE FROM inventory WHERE id = ? AND user_id = ?`,
-      args: [itemId, String(userId)]
+      args: [Number(itemId), String(userId)]
     });
 
     res.json({ success: true });
@@ -324,7 +324,7 @@ app.post('/api/admin/delete-prize', async (req, res) => {
 
     await db.execute({
       sql: `DELETE FROM prizes WHERE id = ?`,
-      args: [prizeId]
+      args: [Number(prizeId)]
     });
     res.json({ success: true });
   } catch (e) {
@@ -340,7 +340,7 @@ app.post('/api/admin/update-prize', async (req, res) => {
 
     await db.execute({
       sql: `UPDATE prizes SET weight = ? WHERE id = ?`,
-      args: [Number(weight), prizeId]
+      args: [Number(weight), Number(prizeId)]
     });
     res.json({ success: true });
   } catch (e) {
