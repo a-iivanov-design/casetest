@@ -153,7 +153,6 @@
             50% { transform: translateY(-6px); border-color: rgba(245, 166, 35, 0.4); }
         }
 
-        /* НОВАЯ РУЛЕТКА (КАК НА СКРИНШОТЕ) */
         .roller-container-wrapper {
             position: relative;
             width: 100%;
@@ -167,7 +166,7 @@
         .roller-window {
             width: 100%;
             max-width: 100%;
-            height: 180px; /* Увеличено под крупные карточки */
+            height: 180px;
             overflow: hidden;
             position: relative;
             background-color: #07080B;
@@ -187,7 +186,6 @@
             will-change: left;
         }
 
-        /* Карточки рулетки широкие и высокие, с вертикальной рамкой */
         .prize-item {
             width: 140px;
             height: 156px;
@@ -247,7 +245,6 @@
             -webkit-box-orient: vertical;
         }
 
-        /* Центральная рамка-селектор со стрелочками сверху и снизу (как на скрине) */
         .selector-center-box {
             position: absolute;
             top: 50%;
@@ -441,6 +438,75 @@
             box-shadow: 0 6px 18px rgba(0,0,0,0.4);
         }
 
+        /* Бургер-меню для админки */
+        .admin-burger-wrap {
+            position: relative;
+            width: 100%;
+            margin-bottom: 10px;
+            flex-shrink: 0;
+        }
+
+        .admin-burger-btn {
+            width: 100%;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 16px;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            box-sizing: border-box;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            transition: border-color 0.2s;
+        }
+        .admin-burger-btn:hover {
+            border-color: var(--border-active);
+        }
+
+        .admin-dropdown-menu {
+            display: none;
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            width: 100%;
+            background: #14161C;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+            z-index: 100;
+            box-sizing: border-box;
+            padding: 6px;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .admin-dropdown-item {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .admin-dropdown-item:hover, .admin-dropdown-item.active {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-main);
+        }
+        .admin-dropdown-item.active {
+            color: var(--primary);
+        }
+
         .bottom-nav-toggle {
             width: 100%;
             background: var(--card-bg);
@@ -565,25 +631,37 @@
     </div>
 
     <div id="section-admin" class="view-section" style="justify-content: flex-start;">
-        <div style="display:flex; gap:4px; margin-bottom:10px; width:100%; overflow-x:auto; flex-shrink:0;">
-            <button class="nav-toggle-btn active" id="subtab-prizes" onclick="switchAdminSub('prizes')" style="padding:7px; font-size: 11px;">Призы</button>
-            <button class="nav-toggle-btn" id="subtab-stats" onclick="switchAdminSub('stats')" style="padding:7px; font-size: 11px;">Статистика</button>
-            <button class="nav-toggle-btn" id="subtab-ban" onclick="switchAdminSub('ban')" style="padding:7px; font-size: 11px;">Баны</button>
-            <button class="nav-toggle-btn" id="subtab-users" onclick="switchAdminSub('users')" style="padding:7px; font-size: 11px;">Игроки</button>
-            <button class="nav-toggle-btn" id="subtab-admins" onclick="switchAdminSub('admins')" style="padding:7px; font-size: 11px;">Админы</button>
+        <!-- Бургер-меню для админки -->
+        <div class="admin-burger-wrap">
+            <button class="admin-burger-btn" onclick="toggleAdminMenu()">
+                <span id="current-admin-title">📦 Призы</span>
+                <span style="font-size: 14px;">▼</span>
+            </button>
+            <div class="admin-dropdown-menu" id="admin-dropdown-menu">
+                <button class="admin-dropdown-item active" id="subtab-prizes" onclick="switchAdminSub('prizes')">📦 Призы</button>
+                <button class="admin-dropdown-item" id="subtab-add-prize" onclick="switchAdminSub('add-prize')">➕ Добавить приз</button>
+                <button class="admin-dropdown-item" id="subtab-stats" onclick="switchAdminSub('stats')">📊 Статистика</button>
+                <button class="admin-dropdown-item" id="subtab-ban" onclick="switchAdminSub('ban')">🛡️ Баны</button>
+                <button class="admin-dropdown-item" id="subtab-users" onclick="switchAdminSub('users')">👥 Игроки</button>
+                <button class="admin-dropdown-item" id="subtab-admins" onclick="switchAdminSub('admins')">🔑 Админы</button>
+            </div>
         </div>
 
         <div id="admin-sub-prizes" class="admin-sub-section" style="display:flex; flex-direction:column; width:100%; flex:1; overflow:hidden;">
-            <div class="admin-list" id="admin-prizes-list" style="flex:1; overflow-y:auto; padding-right: 4px; margin-bottom: 8px;">
+            <div class="admin-list" id="admin-prizes-list" style="flex:1; overflow-y:auto; padding-right: 4px;">
                 <div style="text-align:center; color:var(--text-muted);">Загрузка...</div>
             </div>
-            <div class="add-prize-form" style="flex-shrink:0; margin-top:0;">
+        </div>
+
+        <div id="admin-sub-add-prize" class="admin-sub-section" style="display:none; flex-direction:column; width:100%; flex:1; overflow-y:auto;">
+            <div class="add-prize-form" style="margin-top:0;">
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-main); margin-bottom: 4px;">Создание нового приза</div>
                 <input type="text" id="new-name" placeholder="Название приза" autocomplete="off">
                 <input type="text" id="new-icon" placeholder="Иконка (эмодзи или ссылка)" autocomplete="off">
                 <input type="text" id="new-rarity" placeholder="Редкость (common/rare/epic/legendary)" autocomplete="off">
                 <input type="number" id="new-weight" placeholder="Шанс (вес)" autocomplete="off">
                 <input type="text" id="new-promo" placeholder="Префикс промокода" autocomplete="off">
-                <button class="spin-btn" style="padding: 12px; font-size: 12px;" onclick="addPrize()">Добавить приз</button>
+                <button class="spin-btn" style="padding: 12px; font-size: 12px; margin-top: 4px;" onclick="addPrize()">Добавить приз в рулетку</button>
             </div>
         </div>
 
@@ -751,13 +829,46 @@
             }
         }
 
+        function toggleAdminMenu() {
+            const menu = document.getElementById('admin-dropdown-menu');
+            menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+        }
+
+        window.addEventListener('click', function(e) {
+            if (!e.target.closest('.admin-burger-wrap')) {
+                const menu = document.getElementById('admin-dropdown-menu');
+                if (menu) menu.style.display = 'none';
+            }
+        });
+
         function switchAdminSub(sub) {
-            ['prizes', 'stats', 'ban', 'users', 'admins'].forEach(s => {
-                document.getElementById(`subtab-${s}`).classList.remove('active');
-                document.getElementById(`admin-sub-${s}`).style.display = 'none';
+            ['prizes', 'add-prize', 'stats', 'ban', 'users', 'admins'].forEach(s => {
+                const btn = document.getElementById(`subtab-${s}`);
+                const section = document.getElementById(`admin-sub-${s}`);
+                if (btn) btn.classList.remove('active');
+                if (section) section.style.display = 'none';
             });
-            document.getElementById(`subtab-${sub}`).classList.add('active');
-            document.getElementById(`admin-sub-${sub}`).style.display = 'flex';
+            
+            const activeBtn = document.getElementById(`subtab-${sub}`);
+            const activeSection = document.getElementById(`admin-sub-${sub}`);
+            if (activeBtn) activeBtn.classList.add('active');
+            if (activeSection) activeSection.style.display = 'flex';
+
+            const menu = document.getElementById('admin-dropdown-menu');
+            if (menu) menu.style.display = 'none';
+
+            const titles = {
+                'prizes': '📦 Призы',
+                'add-prize': '➕ Добавить приз',
+                'stats': '📊 Статистика',
+                'ban': '🛡️ Баны',
+                'users': '👥 Игроки',
+                'admins': '🔑 Админы'
+            };
+            const titleEl = document.getElementById('current-admin-title');
+            if (titleEl && titles[sub]) {
+                titleEl.innerText = titles[sub];
+            }
 
             if (sub === 'stats') loadStats();
             if (sub === 'ban') loadBannedUsers();
@@ -1046,8 +1157,8 @@
             weightEl.value = '';
             promoEl.value = '';
 
+            switchAdminSub('prizes');
             loadAdminPrizes();
-            nameEl.focus();
         }
 
         async function deletePrize(prizeId) {
@@ -1147,7 +1258,7 @@
             content.style.left = '0px';
 
             const rollerWindowWidth = document.getElementById('roller-window').clientWidth;
-            const cardWidth = 148; // ширина карточки + марджины (140 + 8)
+            const cardWidth = 148;
             const targetIndex = 30;
             const targetLeft = -((targetIndex * cardWidth) - (rollerWindowWidth / 2) + (cardWidth / 2));
 
