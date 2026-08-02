@@ -47,7 +47,6 @@
             pointer-events: none;
         }
 
-        /* Шапка с шестеренкой слева и логотипом по центру */
         .top-bar {
             width: 100%;
             display: flex;
@@ -207,7 +206,6 @@
             padding: 12px;
             text-align: center;
             position: relative;
-            transition: border-color 0.2s;
         }
 
         .prize-item.prize-rare { background: linear-gradient(180deg, #14161C 0%, #1a1e2b 100%); border-color: #3b82f6; }
@@ -243,11 +241,6 @@
             text-transform: uppercase;
             letter-spacing: 0.6px;
             font-weight: 600;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
         }
 
         .selector-center-box {
@@ -269,19 +262,12 @@
             position: absolute;
             left: 50%;
             transform: translateX(-50%);
-            width: 0;
-            height: 0;
+            width: 0; height: 0;
             border-left: 6px solid transparent;
             border-right: 6px solid transparent;
         }
-        .selector-center-box::before {
-            top: -10px;
-            border-bottom: 8px solid var(--primary);
-        }
-        .selector-center-box::after {
-            bottom: -10px;
-            border-top: 8px solid var(--primary);
-        }
+        .selector-center-box::before { top: -10px; border-bottom: 8px solid var(--primary); }
+        .selector-center-box::after { bottom: -10px; border-top: 8px solid var(--primary); }
 
         .action-area {
             width: 100%;
@@ -311,10 +297,6 @@
         button.spin-btn:not(:disabled):hover {
             filter: brightness(1.1);
             transform: translateY(-1px);
-            box-shadow: 0 8px 25px rgba(245, 166, 35, 0.35);
-        }
-        button.spin-btn:not(:disabled):active {
-            transform: scale(0.98);
         }
         button.spin-btn:disabled {
             background: var(--card-bg);
@@ -369,10 +351,6 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.3);
             width: 100%;
             box-sizing: border-box;
-            transition: border-color 0.2s ease;
-        }
-        .admin-card:hover {
-            border-color: var(--border-active);
         }
 
         .admin-card input {
@@ -387,7 +365,6 @@
             outline: none;
             pointer-events: auto;
             user-select: text;
-            -webkit-user-select: text;
         }
 
         .admin-card button, .inventory-card button {
@@ -427,10 +404,8 @@
             outline: none;
             width: 100%;
             box-sizing: border-box;
-            transition: all 0.2s ease;
             pointer-events: auto !important;
             user-select: text !important;
-            -webkit-user-select: text !important;
         }
         .add-prize-form input:focus {
             border-color: var(--primary);
@@ -439,11 +414,10 @@
 
         .stats-grid {
             width: 100%;
-            display: grid;
-            grid-template-columns: 1fr;
+            display: flex;
+            flex-direction: column;
             gap: 8px;
             box-sizing: border-box;
-            margin-top: 2px;
         }
         .stat-card {
             background: var(--card-bg);
@@ -453,7 +427,6 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
             box-sizing: border-box;
         }
         .stat-card-info {
@@ -462,29 +435,15 @@
             gap: 12px;
         }
         .stat-icon {
-            width: 36px;
-            height: 36px;
+            width: 36px; height: 36px;
             background: rgba(255, 255, 255, 0.04);
             border: 1px solid var(--border-color);
             border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            display: flex; align-items: center; justify-content: center;
             font-size: 16px;
         }
-        .stat-title {
-            font-size: 11px;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 2px;
-        }
-        .stat-value {
-            font-size: 18px;
-            font-weight: 800;
-            color: var(--text-main);
-        }
+        .stat-title { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; }
+        .stat-value { font-size: 18px; font-weight: 800; color: var(--text-main); }
 
         .admin-header-row {
             width: 100%;
@@ -498,23 +457,12 @@
             padding: 8px 14px;
             border-radius: 14px;
             box-sizing: border-box;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
             z-index: 20;
             position: relative;
         }
 
-        .admin-section-title {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--text-main);
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .admin-menu-wrap {
-            position: relative;
-        }
+        .admin-section-title { font-size: 13px; font-weight: 700; color: var(--text-main); }
+        .admin-menu-wrap { position: relative; }
 
         .admin-dots-btn {
             background: transparent;
@@ -525,17 +473,10 @@
             cursor: pointer;
             padding: 4px 8px;
             border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-            letter-spacing: 1px;
+            display: flex; align-items: center; justify-content: center;
             pointer-events: auto;
         }
-        .admin-dots-btn:hover {
-            color: var(--text-main);
-            background: rgba(255, 255, 255, 0.06);
-        }
+        .admin-dots-btn:hover { color: var(--text-main); background: rgba(255, 255, 255, 0.06); }
 
         .admin-dropdown-menu {
             display: none;
@@ -564,19 +505,14 @@
             font-weight: 700;
             border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            display: flex; align-items: center; gap: 8px;
             pointer-events: auto;
         }
         .admin-dropdown-item:hover, .admin-dropdown-item.active {
             background: rgba(255, 255, 255, 0.06);
             color: var(--text-main);
         }
-        .admin-dropdown-item.active {
-            color: var(--primary);
-        }
+        .admin-dropdown-item.active { color: var(--primary); }
 
         .bottom-nav-toggle {
             width: 100%;
@@ -588,7 +524,6 @@
             gap: 4px;
             box-sizing: border-box;
             flex-shrink: 0;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
             margin-top: 6px;
         }
 
@@ -602,15 +537,12 @@
             font-weight: 700;
             border-radius: 12px;
             cursor: pointer;
-            transition: all 0.2s ease;
             text-align: center;
             pointer-events: auto;
         }
-
         .nav-toggle-btn.active {
             background: var(--primary);
             color: #0A0B0E;
-            box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
         }
 
         #banned-screen {
@@ -633,7 +565,6 @@
             border-radius: 20px;
             max-width: 300px;
             width: 100%;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
         }
     </style>
 </head>
@@ -643,32 +574,27 @@
         <div class="banned-box">
             <div style="font-size: 42px; margin-bottom: 12px;">⚠️</div>
             <h2 style="color: var(--text-main); margin: 0 0 6px 0; font-size: 16px; font-weight: 800;">Доступ ограничен</h2>
-            <p style="color: var(--text-muted); font-size: 12px; line-height: 1.4; margin-bottom: 0;">Ваш аккаунт заблокирован администрацией.</p>
+            <p style="color: var(--text-muted); font-size: 12px; margin-bottom: 0;">Ваш аккаунт заблокирован администрацией.</p>
         </div>
     </div>
 
     <!-- Модальное окно победы -->
     <div id="win-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(10,11,14,0.88); z-index:9999; flex-direction:column; justify-content:center; align-items:center; padding:20px; box-sizing:border-box;">
-        <div style="background:var(--card-bg); border:1px solid var(--border-color); padding:26px 20px; border-radius:22px; max-width:280px; width:100%; text-align:center; box-shadow: 0 20px 50px rgba(0,0,0,0.8);">
-            <div style="font-size:10px; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:4px; font-weight:700;">Поздравляем с победой!</div>
+        <div style="background:var(--card-bg); border:1px solid var(--border-color); padding:26px 20px; border-radius:22px; max-width:280px; width:100%; text-align:center;">
+            <div style="font-size:10px; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px; font-weight:700;">Поздравляем с победой!</div>
             <div id="win-modal-icon" style="font-size:46px; margin:10px 0;">🎁</div>
             <h3 id="win-modal-title" style="font-size:16px; font-weight:800; color:var(--text-main); margin:0 0 12px 0;">Название приза</h3>
             <div style="background:#0A0B0E; border:1px solid var(--border-color); padding:10px; border-radius:12px; margin-bottom:16px;">
                 <div style="font-size:9px; color:var(--text-muted); text-transform:uppercase; margin-bottom:2px; font-weight:700;">Промокод</div>
-                <div id="win-modal-promo" style="font-size:14px; font-weight:800; color:var(--primary); letter-spacing:0.5px;">CODE-XXXX</div>
+                <div id="win-modal-promo" style="font-size:14px; font-weight:800; color:var(--primary);">CODE-XXXX</div>
             </div>
             <button class="spin-btn" style="padding:12px; font-size:12px;" onclick="closeWinModal()">Забрать в инвентарь</button>
         </div>
     </div>
 
     <div class="top-bar">
-        <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')" title="Панель администратора">
-            ⚙️
-        </button>
-        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;" title="Закрыть панель">
-            ✕
-        </button>
-
+        <button class="admin-entry-btn" id="admin-entry-btn" onclick="switchTab('admin')">⚙️</button>
+        <button class="admin-entry-btn" id="exit-admin-btn" onclick="switchTab('case')" style="display: none;">✕</button>
         <div class="header-logo-container" id="header-logo-box">
             <div class="club-logo-text" id="club-logo-text">CASE <span>LOUNGE</span></div>
         </div>
@@ -678,16 +604,13 @@
         <div class="case-preview-box" id="case-preview-container">
             <span id="case-preview-icon">📦</span>
         </div>
-
         <div class="roller-container-wrapper" id="roller-wrapper-box" style="display: none;">
             <div class="selector-center-box"></div>
             <div class="roller-window" id="roller-window">
                 <div class="roller-content" id="roller-content"></div>
             </div>
         </div>
-
         <div id="result-message"></div>
-
         <div class="action-area">
             <button class="spin-btn" id="action-button" onclick="startCase()">ОТКРЫТЬ КЕЙС</button>
             <div class="spin-timer-text">Доступно 1 бесплатное открытие в сутки</div>
@@ -736,7 +659,7 @@
             </div>
         </div>
 
-        <div id="admin-sub-stats" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1;">
+        <div id="admin-sub-stats" class="admin-sub-section" style="display:none; flex-direction:column; width:100%; flex:1;">
             <div class="stats-grid" id="stats-content">
                 <div style="text-align:center; color:var(--text-muted); font-size:12px; padding:20px;">Загрузка...</div>
             </div>
@@ -755,7 +678,7 @@
         </div>
 
         <div id="admin-sub-users" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
-            <div class="admin-list" id="all-users-list" style="flex:1; overflow-y:auto;"></div>
+            <div class="admin-list" id="all-users-list" style="flex:1; overflow-y:auto; padding-right: 4px;"></div>
         </div>
 
         <div id="admin-sub-admins" class="admin-sub-section" style="display:none; flex-direction:column; align-items:center; width:100%; flex:1; overflow:hidden;">
@@ -786,7 +709,6 @@
         if (window.APP_CONFIG) {
             const cfg = window.APP_CONFIG;
             const logoBox = document.getElementById('header-logo-box');
-            
             if (cfg.clubLogoImage) {
                 logoBox.innerHTML = `<img src="${cfg.clubLogoImage}" class="club-logo-img" alt="Logo">`;
             } else if (cfg.clubLogoText) {
@@ -825,18 +747,15 @@
         async function checkUserStatus() {
             const btn = document.getElementById('action-button');
             const msg = document.getElementById('result-message');
-
             try {
                 const res = await fetch(`/api/status?userId=${userId}&username=${username}`);
                 const data = await res.json();
-
                 if (data.isBanned) {
                     document.getElementById('banned-screen').style.display = 'flex';
                     btn.disabled = true;
                     btn.innerText = 'Заблокирован';
                     return;
                 }
-
                 if (data.canSpin === false) {
                     btn.disabled = true;
                     btn.innerText = 'ОТКРЫТЬ КЕЙС';
@@ -847,9 +766,7 @@
                     btn.innerText = 'ОТКРЫТЬ КЕЙС';
                     msg.innerText = '';
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         async function checkAdminAccess() {
@@ -861,9 +778,7 @@
                     isSuperAdmin = data.isSuper;
                     document.getElementById('admin-entry-btn').style.display = 'flex';
                 }
-            } catch (e) {
-                console.error(e);
-            }
+            } catch (e) { console.error(e); }
         }
 
         checkAdminAccess();
@@ -907,10 +822,24 @@
             menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
         }
 
+        // Выпадающие шестеренки для игроков
+        function toggleUserMenu(event, targetIdentifier) {
+            event.stopPropagation();
+            // Закрываем все остальные меню
+            document.querySelectorAll('.user-dropdown-menu').forEach(m => {
+                if (m.id !== `user-menu-${targetIdentifier}`) m.style.display = 'none';
+            });
+            const menu = document.getElementById(`user-menu-${targetIdentifier}`);
+            if (menu) {
+                menu.style.display = menu.style.display === 'flex' ? 'none' : 'flex';
+            }
+        }
+
         window.addEventListener('click', function(e) {
-            if (!e.target.closest('.admin-menu-wrap')) {
+            if (!e.target.closest('.admin-menu-wrap') && !e.target.closest('.user-menu-wrap')) {
                 const menu = document.getElementById('admin-dropdown-menu');
                 if (menu) menu.style.display = 'none';
+                document.querySelectorAll('.user-dropdown-menu').forEach(m => m.style.display = 'none');
             }
         });
 
@@ -939,9 +868,7 @@
                 'admins': '🔑 Админы'
             };
             const titleEl = document.getElementById('current-admin-title');
-            if (titleEl && titles[sub]) {
-                titleEl.innerText = titles[sub];
-            }
+            if (titleEl && titles[sub]) titleEl.innerText = titles[sub];
 
             if (sub === 'stats') loadStats();
             if (sub === 'ban') loadBannedUsers();
@@ -1015,11 +942,9 @@
 
         async function loadAdminPrizes() {
             const listEl = document.getElementById('admin-prizes-list');
-            
             if (!isPrizesLoadedOnce) {
                 listEl.innerHTML = '<div style="text-align: center; color: var(--text-muted);">Загрузка...</div>';
             }
-
             try {
                 const res = await fetch(`/api/admin/prizes?username=${username}`);
                 const data = await res.json();
@@ -1110,6 +1035,7 @@
             } catch (e) {}
         }
 
+        // Загрузка списка пользователей с меню-шестеренкой
         async function loadAllUsers() {
             const listEl = document.getElementById('all-users-list');
             try {
@@ -1124,28 +1050,75 @@
                     const isRopogkuUser = u.username && u.username.toLowerCase() === 'ropogku';
                     const displayName = u.username ? `@${u.username}` : `ID: ${u.id}`;
                     const targetIdentifier = u.username || u.id;
+                    const cleanUser = u.username ? u.username : '';
+
                     const card = document.createElement('div');
                     card.className = 'admin-card';
-                    
-                    let actionButtonsHtml = '';
+
+                    let menuHtml = '';
                     if (!isRopogkuUser) {
-                        actionButtonsHtml = `
-                            <div style="display:flex; gap:6px; flex-shrink:0;">
-                                <button onclick="document.getElementById('ban-username').value='${u.username || ''}'; switchAdminSub('ban');">Бан</button>
-                                <button style="background:var(--card-bg); color:var(--text-muted); border:1px solid var(--border-color);" onclick="deleteUser('${targetIdentifier}')">Удалить</button>
+                        menuHtml = `
+                            <div class="user-menu-wrap" style="position:relative;">
+                                <button class="admin-dots-btn" onclick="toggleUserMenu(event, '${targetIdentifier}')">⚙️</button>
+                                <div class="user-dropdown-menu admin-dropdown-menu" id="user-menu-${targetIdentifier}">
+                                    <button class="admin-dropdown-item" style="color:var(--secondary);" onclick="actionUserBan('${cleanUser}', 1)">🛡️ Забанить</button>
+                                    <button class="admin-dropdown-item" onclick="actionUserBan('${cleanUser}', 0)">✅ Разбанить</button>
+                                    <button class="admin-dropdown-item" onclick="actionResetTimer('${cleanUser}')">⏳ Сбросить таймер</button>
+                                    <button class="admin-dropdown-item" onclick="actionMakeAdmin('${cleanUser}')">🔑 Назначить админом</button>
+                                    <button class="admin-dropdown-item" style="color:var(--secondary);" onclick="deleteUser('${targetIdentifier}')">🗑️ Удалить</button>
+                                </div>
                             </div>
                         `;
                     } else {
-                        actionButtonsHtml = `<div style="font-size:10px; color:var(--text-muted);">Главный админ</div>`;
+                        menuHtml = `<div style="font-size:10px; color:var(--text-muted);">Главный админ</div>`;
                     }
 
                     card.innerHTML = `
-                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:160px;">${displayName}</div>
-                        ${actionButtonsHtml}
+                        <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px;">${displayName}</div>
+                        ${menuHtml}
                     `;
                     listEl.appendChild(card);
                 });
             } catch (e) {}
+        }
+
+        // Действия из меню пользователя
+        async function actionUserBan(targetUsername, banState) {
+            if (!targetUsername) return alert('У пользователя нет username');
+            const res = await fetch('/api/admin/ban', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetUsername, banState })
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            alert(banState === 1 ? 'Пользователь заблокирован' : 'Пользователь разблокирован');
+            loadAllUsers();
+        }
+
+        async function actionResetTimer(targetUsername) {
+            if (!targetUsername) return alert('У пользователя нет username');
+            const res = await fetch('/api/admin/reset-timer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, targetUsername })
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            alert('Таймер открытия кейса сброшен');
+        }
+
+        async function actionMakeAdmin(newAdminUsername) {
+            if (!isSuperAdmin) return alert('Только главный администратор может назначать других админов');
+            if (!newAdminUsername) return alert('У пользователя нет username');
+            const res = await fetch('/api/admin/add-admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, newAdminUsername })
+            });
+            const data = await res.json();
+            if (data.error) { alert(data.error); return; }
+            alert(`Пользователь @${newAdminUsername} назначен администратором`);
         }
 
         async function loadAdminsList() {
@@ -1219,7 +1192,6 @@
             const input = document.getElementById(`weight-${prizeId}`);
             if (!input) return;
             const weight = Number(input.value);
-            
             await fetch('/api/admin/update-prize', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
