@@ -930,27 +930,32 @@
                             ${formattedDate ? `<div style="font-size:9px; color:var(--text-muted); margin-top:2px;">Получено: ${formattedDate}</div>` : ''}
                             <div style="font-size:9px; color:var(--text-muted); margin-top:1px;">Срок: ${item.hoursLeft}ч</div>
                         </div>
-                        <button type="button" onclick="deleteInventoryItem(${item.id})">Удалить</button>
+                        <button type="button" class="inv-delete-btn" data-id="${item.id}">Удалить</button>
                     `;
                     listEl.appendChild(card);
                 });
+
+                // Надежная навеска кликов по кнопкам удаления инвентаря без сбоев рендеринга
+                listEl.querySelectorAll('.inv-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const itemId = e.target.getAttribute('data-id');
+                        if (!confirm('Удалить приз?')) return;
+                        try {
+                            const res = await fetch('/api/inventory/delete', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ userId, itemId: Number(itemId) })
+                            });
+                            const data = await res.json();
+                            if (data.error) { alert(data.error); return; }
+                            loadInventory();
+                        } catch (err) { alert('Ошибка'); }
+                    });
+                });
+
             } catch (e) {
                 listEl.innerHTML = '<div style="text-align: center; color: var(--secondary);">Ошибка загрузки</div>';
             }
-        }
-
-        async function deleteInventoryItem(itemId) {
-            if (!confirm('Удалить приз?')) return;
-            try {
-                const res = await fetch('/api/inventory/delete', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId, itemId: Number(itemId) })
-                });
-                const data = await res.json();
-                if (data.error) { alert(data.error); return; }
-                loadInventory();
-            } catch (e) { alert('Ошибка'); }
         }
 
         async function loadAdminPrizes() {
