@@ -51,7 +51,8 @@
             width: 100%;
             display: flex;
             align-items: center;
-            height: 52px;
+            justify-content: center;
+            height: 64px;
             flex-shrink: 0;
             z-index: 20;
             position: relative;
@@ -83,33 +84,34 @@
             border-color: var(--border-active);
         }
 
+        /* Мягкий квадрат для логотипа */
         .header-logo-container {
-            width: 100%;
-            height: 52px;
-            background: transparent;
-            border: none;
-            border-radius: 0;
+            width: 96px;
+            height: 64px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            padding: 0;
+            padding: 4px 8px;
             box-sizing: border-box;
-            box-shadow: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
             z-index: 20;
         }
 
         .club-logo-img {
-            max-height: 50px;
+            max-height: 52px;
             max-width: 100%;
             object-fit: contain;
         }
 
         .club-logo-text {
-            font-size: 18px;
+            font-size: 14px;
             font-weight: 800;
             color: var(--text-main);
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             text-transform: uppercase;
             white-space: nowrap;
             text-align: center;
@@ -938,7 +940,8 @@
                     const deleteBtn = document.createElement('button');
                     deleteBtn.type = 'button';
                     deleteBtn.innerText = 'Удалить';
-                    deleteBtn.addEventListener('click', () => deleteInventoryItem(item.id));
+                    // Привязка по конкретному уникальному ID записи из базы
+                    deleteBtn.onclick = () => deleteInventoryItem(item.id);
 
                     card.appendChild(infoDiv);
                     card.appendChild(deleteBtn);
