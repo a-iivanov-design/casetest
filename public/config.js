@@ -1,6 +1,6 @@
 window.APP_CONFIG = {
     // Логотип картинкой (вставь прямую ссылку на картинку сюда, чтобы вывести как на твоем скриншоте)
-    clubLogoImage: "", 
+    clubLogoImage: "/logo.phg", 
     
     // Текстовый логотип (если clubLogoImage пустая)
     clubLogoText: "CASE <span>LOUNGE</span>", 
