@@ -50,52 +50,50 @@
         .top-bar {
             width: 100%;
             display: flex;
-            justify-content: space-between;
             align-items: center;
             height: 48px;
             flex-shrink: 0;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 0 12px;
-            box-sizing: border-box;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-            gap: 10px;
+            gap: 12px;
             z-index: 20;
             position: relative;
         }
 
         .admin-entry-btn {
-            background: rgba(255, 255, 255, 0.04);
+            background: var(--card-bg);
             color: var(--text-muted);
             border: 1px solid var(--border-color);
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
+            width: 44px;
+            height: 44px;
+            border-radius: 14px;
             cursor: pointer;
-            font-size: 18px;
+            font-size: 20px;
             display: none;
             align-items: center;
             justify-content: center;
             transition: all 0.2s ease;
             z-index: 25;
             flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         .admin-entry-btn:hover {
             color: var(--text-main);
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--card-hover);
             border-color: var(--border-active);
         }
 
         .header-logo-container {
             flex: 1;
+            height: 44px;
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%;
             overflow: hidden;
-            padding: 0 4px;
+            padding: 0 12px;
             box-sizing: border-box;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
 
         .club-logo-img {
@@ -722,7 +720,6 @@
             const cfg = window.APP_CONFIG;
             const logoBox = document.getElementById('header-logo-box');
             if (cfg.clubLogoImage) {
-                // Если картинка не найдена/ошибка загрузки, выводим красивый текстовый логотип из конфигурации
                 logoBox.innerHTML = `<img src="${cfg.clubLogoImage}" class="club-logo-img" alt="Logo" onerror="this.outerHTML='<div class=\'club-logo-text\'>${cfg.clubLogoText || 'CASE <span>LOUNGE</span>'}</div>'">`;
             } else if (cfg.clubLogoText) {
                 logoBox.innerHTML = `<div class="club-logo-text">${cfg.clubLogoText}</div>`;
