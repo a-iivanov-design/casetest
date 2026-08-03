@@ -756,7 +756,7 @@
         let isAdminUser = false;
         let isPrizesLoadedOnce = false;
 
-        // Глобальный стабильный обработчик удаления предметов инвентаря (делегирование событий)
+        // Глобальный стабильный обработчик удаления предметов (делегирование событий на весь список)
         document.getElementById('inventory-list').addEventListener('click', async function(e) {
             if (e.target && e.target.classList.contains('inv-delete-btn')) {
                 const itemId = e.target.getAttribute('data-id');
