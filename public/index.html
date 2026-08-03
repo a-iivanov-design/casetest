@@ -52,7 +52,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 64px;
+            height: 74px;
             flex-shrink: 0;
             z-index: 20;
             position: relative;
@@ -84,31 +84,31 @@
             border-color: var(--border-active);
         }
 
-        /* Мягкий квадрат для логотипа */
+        /* Увеличенная плашка мягкий квадрат для логотипа */
         .header-logo-container {
-            width: 96px;
-            height: 64px;
+            width: 150px;
+            height: 100px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 18px;
+            border-radius: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             overflow: hidden;
-            padding: 4px 8px;
+            padding: 6px 10px;
             box-sizing: border-box;
             box-shadow: 0 4px 16px rgba(0,0,0,0.4);
             z-index: 20;
         }
 
         .club-logo-img {
-            max-height: 52px;
+            max-height: 62px;
             max-width: 100%;
             object-fit: contain;
         }
 
         .club-logo-text {
-            font-size: 14px;
+            font-size: 15px;
             font-weight: 800;
             color: var(--text-main);
             letter-spacing: 0.5px;
@@ -940,7 +940,6 @@
                     const deleteBtn = document.createElement('button');
                     deleteBtn.type = 'button';
                     deleteBtn.innerText = 'Удалить';
-                    // Привязка по конкретному уникальному ID записи из базы
                     deleteBtn.onclick = () => deleteInventoryItem(item.id);
 
                     card.appendChild(infoDiv);
